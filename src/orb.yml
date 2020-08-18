@@ -1,0 +1,299 @@
+version: 2.1
+
+orbs:
+  digitalocean: digitalocean/cli@0.1.1
+  rancher2_cli: brandnewbox/rancher2_cli@1.1.0
+  kubernetes: circleci/kubernetes@0.11.0
+
+description: |
+  Install and configure the Rancher2 CLI
+examples:
+  simple_install_and_configure:
+    description: Install the Rancher2 CLI, if not available
+    usage:
+      version: 2.1
+      orbs:
+        drydock: brandnewbox/drydock@1.0.0
+      workflows:
+        devops_flow:
+          jobs:
+            - drydock/build:
+                bnb-ruby-tag: 2.6-postgresql
+            - drydock/test-with-postgres:
+                bnb-ruby-tag: 2.6-postgresql
+                requires:
+                  - build
+            - drydock/s2i-build-and-push:
+                bnb-ruby-tag: 2.6-postgresql
+                filters:
+                  branches:
+                    only: /^(master|staging)$/
+                context: DO_BNB_REGISTRY
+                tag: $CIRCLE_SHA1
+                image: brandnewbox/my-app
+                requires:
+                  - test-with-postgres
+            - drydock/hold:
+                filters:
+                  branches:
+                    only: /^(master|staging)$/
+                requires:
+                  - s2i-build-and-push
+                type: approval
+            - drydock/create-deployment:
+                filters:
+                  branches:
+                    only: /^(master|staging)$/
+                context: DO_BNB_REGISTRY
+                rancher-context: 'c-abcde:p-vwxyz'
+                rancher-namespace: rails-puma
+                rancher-deployment: rails-puma-deployment
+                rancher-container: rails-puma-container
+                tag: $CIRCLE_SHA1
+                image: brandnewbox/my-app
+                requires:
+                  - hold
+
+jobs:
+  build:
+    parameters:
+      bnb-ruby-tag:
+        description: BNB Ruby Image Tag To Use
+        type: string
+    docker:
+      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
+
+    working_directory: /app
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          name: Restore Gem Cache
+          keys:
+            - v2-gem-{{ checksum "Gemfile.lock" }}
+
+      - run:
+          name: Install Gem Dependencies
+          command: |
+            gem install bundler
+            bundle install --jobs=4 --retry=3 --path vendor/bundle
+
+      - save_cache:
+          name: Save Gem Cache
+          paths:
+            - ./vendor/bundle
+          key: v2-gem-{{ checksum "Gemfile.lock" }}
+
+      - restore_cache:
+          name: Restore Yarn Cache
+          keys:
+            - v2-yarn-{{ checksum "yarn.lock" }}
+
+      - run:
+          name: Install Yarn Dependencies
+          command: yarn install --frozen-lockfile
+
+      - save_cache:
+          name: Save Yarn Cache
+          paths:
+            - ~/.cache/yarn
+          key: v2-yarn-{{ checksum "yarn.lock" }}
+
+  test-with-postgres:
+    parameters:
+      bnb-ruby-tag:
+        description: BNB Ruby Image To Use
+        type: string
+    docker:
+      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
+        environment:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
+
+      - image: circleci/postgres:9.5-alpine
+        environment:
+          POSTGRES_USER: circleci
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: my_database
+
+    working_directory: /app
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          name: Restore Gem Cache
+          keys:
+            - v2-gem-{{ checksum "Gemfile.lock" }}
+
+      - restore_cache:
+          name: Restore Yarn Cache
+          keys:
+            - v2-yarn-{{ checksum "yarn.lock" }}
+
+      - run:
+          name: Configure Bundler
+          command: bundle config --local path vendor/bundle
+        
+      - run: 
+          name: Create Database
+          command: bundle exec rake db:create
+
+      - run: 
+          name: Migrate Database
+          command: bundle exec rake db:migrate
+
+      # run tests!
+      - run:
+          name: Run Tests
+          command: |
+            mkdir /tmp/test-results
+            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | \
+              circleci tests split --split-by=timings)"
+
+            bundle exec rspec \
+              --format progress \
+              --format RspecJunitFormatter \
+              --out /tmp/test-results/rspec.xml \
+              --format progress \
+              $TEST_FILES
+
+      # collect reports
+      - store_test_results:
+          path: /tmp/test-results
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: test-results
+
+  s2i-build-and-push:
+    docker:
+      - image: brandnewbox/shipit-ruby
+    parameters:
+      tag:
+        description: Tag to use for image.
+        type: string
+      registry:
+        default: registry.digitalocean.com
+        description: Registry to use for image.
+        type: string
+      image:
+        description: Image name.
+        type: string
+      bnb-ruby-tag:
+        description: BNB Ruby Image To Use
+        type: string
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - checkout
+      # Download and cache dependencies
+      # - restore_cache:
+      #     name: Restore Gem Cache
+      #     keys:
+      #       - v2-gem-{{ checksum "Gemfile.lock" }}
+      # - restore_cache:
+      #     name: Restore Yarn Cache
+      #     keys:
+      #       - v2-yarn-{{ checksum "yarn.lock" }}
+      # - run:
+      #     name: Configure Bundler
+      #     command: bundle config --local path vendor/bundle
+      
+      # Build (taken from https://github.com/brandnewbox/bnb-shipit/blob/master/app/models/s2i_builder.rb)
+      
+      # context is a term used by docker-compose to specify where the Dockerfile is that should be built
+      # Not going to use this in CircleCI because ??? - NCC @ BNB - July 1, 2020
+      # - run:
+      #     name: Build builder image
+      #     command: |
+      #       docker build -t \
+      #       brandnewbox/bnb-ruby:2.6-postgresql \
+      #       ./devops
+
+      - run:
+          name: Build image with s2i
+          command: |
+            s2i build . \
+            brandnewbox/bnb-ruby:<< parameters.bnb-ruby-tag>> \
+            << parameters.image >>:<< parameters.tag >>  \
+            -p always \
+            -e RAILS_ENV=production \
+            -e DEVISE_SECRET_KEY=shipit_chokes_without_this \
+            -e DATABASE_URL=shipit_chokes_without_this \
+            -e OLD_ERP_DATABASE_URL=shipit_chokes_without_this
+      - run:
+          name: Tag image
+          command: |
+            docker tag << parameters.image >>:<< parameters.tag >> \
+            << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
+      # Push
+      - digitalocean/install
+      - digitalocean/initialize:
+          digitalocean-access-token: DO_BNB_REGISTRY_ACCESS_TOKEN
+      - run: doctl registry login
+      - run:
+          name: Push image
+          command: |
+            docker push \
+            << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
+  # Create/Update DigitalOcean Deployment
+  create-deployment:
+    docker:
+      - image: circleci/python:3.8.0-buster
+    parameters:
+      rancher-context:
+        description: Rancher context
+        type: string
+      rancher-workload-type:
+        default: deployment
+        description: Type of workload
+        enum:
+          - deployment
+          - daemonset
+        type: enum
+      rancher-namespace:
+        default: default
+        description: Rancher namespace
+        type: string
+      rancher-deployment:
+        description: Rancher deployment
+        type: string
+      rancher-container:
+        description: Rancher container
+        type: string
+      image:
+        description: New image
+        type: string
+      registry:
+        default: registry.digitalocean.com
+        description: Registry to use for image.
+        type: string
+      tag:
+        description: Tag to use for image.
+        type: string
+    steps:
+      - checkout
+      - rancher2_cli/install
+      - rancher2_cli/initialize:
+          rancher-token: RANCHER_TOKEN
+          rancher-server-url: RANCHER_SERVER_URL
+          rancher-context: << parameters.rancher-context >>
+      # Gotta have kubectl for any `rancher kubectl` commands
+      - kubernetes/install-kubectl
+      # Give rancher access to DO registry
+      - digitalocean/install
+      - digitalocean/initialize:
+          digitalocean-access-token: DO_BNB_REGISTRY_ACCESS_TOKEN
+      # This command outputs a YAML-formatted Kubernetes secret manifest that can 
+      # be used to grant a Kubernetes cluster pull access to your private container registry.
+      # By default, name of the secret is the registry name prefixed with “registry-”
+      # https://www.digitalocean.com/docs/apis-clis/doctl/reference/registry/kubernetes-manifest/
+      - run: doctl registry kubernetes-manifest --namespace << parameters.rancher-namespace >> | rancher kubectl -n << parameters.rancher-namespace >> apply -f -
+      - run: "rancher kubectl -n << parameters.rancher-namespace >> patch serviceaccount default -p '{\"imagePullSecrets\": [{\"name\": \"registry-brandnewbox\"}]}'"
+      # Now update the image in your deployment
+      - run: rancher kubectl -n << parameters.rancher-namespace >> set image << parameters.rancher-workload-type >>/<< parameters.rancher-deployment >> << parameters.rancher-container >>=<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
+      - run: rancher kubectl -n << parameters.rancher-namespace >> rollout status << parameters.rancher-workload-type >>/<< parameters.rancher-deployment >>
+
