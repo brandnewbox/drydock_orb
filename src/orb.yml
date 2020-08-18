@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.0.0
+        drydock: brandnewbox/drydock@1.1.0
       workflows:
         devops_flow:
           jobs:
@@ -22,7 +22,7 @@ examples:
             - drydock/test-with-postgres:
                 bnb-ruby-tag: 2.6-postgresql
                 requires:
-                  - build
+                  - drydock/build
             - drydock/s2i-build-and-push:
                 bnb-ruby-tag: 2.6-postgresql
                 filters:
@@ -32,13 +32,13 @@ examples:
                 tag: $CIRCLE_SHA1
                 image: brandnewbox/my-app
                 requires:
-                  - test-with-postgres
-            - drydock/hold:
+                  - drydock/test-with-postgres
+            - hold:
                 filters:
                   branches:
                     only: /^(master|staging)$/
                 requires:
-                  - s2i-build-and-push
+                  - drydock/s2i-build-and-push
                 type: approval
             - drydock/create-deployment:
                 filters:
