@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.1.1
+        drydock: brandnewbox/drydock@1.2.0
       workflows:
         devops_flow:
           jobs:
@@ -307,7 +307,7 @@ jobs:
       - run: doctl registry kubernetes-manifest --namespace << parameters.rancher-namespace >> | rancher kubectl -n << parameters.rancher-namespace >> apply -f -
       - run: "rancher kubectl -n << parameters.rancher-namespace >> patch serviceaccount default -p '{\"imagePullSecrets\": [{\"name\": \"registry-brandnewbox\"}]}'"
       # Now update the secret
-      - run: rancher kubectl -n << parameters.rancher-namespace >> get secret rails-credentials -o json | jq --arg key "$(echo $RAILS_CREDENTIALS_KEY | base64)" '.data["rails-credentials-key"]=$key' | kubectl apply -f -
+      - run: rancher kubectl -n << parameters.rancher-namespace >> get secret rails-credentials -o json | jq --arg key "$(echo $RAILS_CREDENTIALS_KEY | base64)" '.data["rails-credentials-key"]=$key' | rancher kubectl -n << parameters.rancher-namespace >> apply -f -
       # Now update the image in your deployment
       - run: rancher kubectl -n << parameters.rancher-namespace >> set image << parameters.rancher-workload-type >>/<< parameters.rancher-deployment >> << parameters.rancher-container >>=<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
       - run: rancher kubectl -n << parameters.rancher-namespace >> rollout status << parameters.rancher-workload-type >>/<< parameters.rancher-deployment >>
