@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.2.0
+        drydock: brandnewbox/drydock@1.3.0
       workflows:
         devops_flow:
           jobs:
@@ -130,6 +130,80 @@ jobs:
           POSTGRES_USER: circleci
           POSTGRES_PASSWORD: password
           POSTGRES_DB: my_database
+
+    working_directory: /app
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          name: Restore Gem Cache
+          keys:
+            - v2-gem-{{ checksum "Gemfile.lock" }}
+
+      - restore_cache:
+          name: Restore Yarn Cache
+          keys:
+            - v2-yarn-{{ checksum "yarn.lock" }}
+
+      - run:
+          name: Configure Bundler
+          command: bundle config --local path vendor/bundle
+        
+      - run: 
+          name: Create Database
+          command: bundle exec rake db:create
+
+      - run: 
+          name: Migrate Database
+          command: bundle exec rake db:migrate
+
+      # run tests!
+      - run:
+          name: Run Tests
+          command: |
+            mkdir /tmp/test-results
+            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | \
+              circleci tests split --split-by=timings)"
+
+            bundle exec rspec \
+              --format progress \
+              --format RspecJunitFormatter \
+              --out /tmp/test-results/rspec.xml \
+              --format progress \
+              $TEST_FILES
+
+      # collect reports
+      - store_test_results:
+          path: /tmp/test-results
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: test-
+
+  test-with-postgres-and-elasticsearch:
+    parameters:
+      bnb-ruby-tag:
+        description: BNB Ruby Image To Use
+        type: string
+      elasticsearch-tag:
+        description: ElasticSearch Tag To Use
+        type: string
+        default: "6.5.0"
+    docker:
+      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
+        environment:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
+          ELASTICSEARCH_URL: http://localhost:9200
+
+      - image: circleci/postgres:9.5-alpine
+        environment:
+          POSTGRES_USER: circleci
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: my_database
+
+      - image: elasticsearch:<<elasticsearch-tag>>
 
     working_directory: /app
 
