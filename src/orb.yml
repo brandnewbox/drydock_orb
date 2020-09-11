@@ -203,7 +203,7 @@ jobs:
           POSTGRES_PASSWORD: password
           POSTGRES_DB: my_database
 
-      - image: elasticsearch:<<elasticsearch-tag>>
+      - image: elasticsearch:<<parameters.elasticsearch-tag>>
 
     working_directory: /app
 
