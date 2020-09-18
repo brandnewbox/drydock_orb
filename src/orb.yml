@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.3.2
+        drydock: brandnewbox/drydock@1.3.3
       workflows:
         devops_flow:
           jobs:
@@ -264,12 +264,11 @@ jobs:
       - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
         environment:
           RAILS_ENV: test
-          DATABASE_URL: mysql2://circleci:password@127.0.0.1:3306/my_database
+          DATABASE_URL: mysql2://root:password@127.0.0.1:3306/my_database
 
       - image: circleci/mysql:5.7
         environment:
           MYSQL_HOST: 127.0.0.1
-          MYSQL_USER: circleci
           MYSQL_ROOT_PASSWORD: password
           MYSQL_DATABASE: my_database
 
