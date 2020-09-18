@@ -272,8 +272,6 @@ jobs:
           MYSQL_USER: circleci
           MYSQL_ROOT_PASSWORD: password
           MYSQL_DATABASE: my_database
-        ports:
-          '3306:3306'
 
     working_directory: /app
 
