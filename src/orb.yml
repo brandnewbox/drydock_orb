@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.3.4
+        drydock: brandnewbox/drydock@1.3.5
       workflows:
         devops_flow:
           jobs:
@@ -25,6 +25,7 @@ examples:
                   - drydock/build
             - drydock/s2i-build-and-push:
                 bnb-ruby-tag: 2.6-postgresql
+                s2i-builder-context: ./devops
                 filters:
                   branches:
                     only: /^(master|staging)$/
@@ -339,22 +340,22 @@ jobs:
       bnb-ruby-tag:
         description: BNB Ruby Image To Use
         type: string
-      docker-context:
-        description: A term used by docker-compose to specify where the Dockerfile is that should be built
+      s2i-builder-context:
+        description: An optional path to the directory containing a custom Dockerfile that S2I should use to build this project instead of just pulling the base image
         type: string
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
       - checkout
       - when:
-          condition: <<parameters.docker-context>>
+          condition: <<parameters.s2i-builder-context>>
           steps:
             - run:
                 name: Build Builder Image
                 command: |
                   docker build -t \
                   brandnewbox/bnb-ruby:<< parameters.bnb-ruby-tag>> \
-                  << parameters.docker-context >>
+                  << parameters.s2i-builder-context >>
       - run:
           name: Build image with s2i
           command: |
