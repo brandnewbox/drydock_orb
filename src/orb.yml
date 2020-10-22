@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.3.5
+        drydock: brandnewbox/drydock@1.3.6
       workflows:
         devops_flow:
           jobs:
@@ -351,22 +351,39 @@ jobs:
           condition: <<parameters.s2i-builder-context>>
           steps:
             - run:
-                name: Build Builder Image
+                name: Build Custom Builder Image
                 command: |
                   docker build -t \
-                  brandnewbox/bnb-ruby:<< parameters.bnb-ruby-tag>> \
+                  brandnewbox/bnb-ruby:custom-<< parameters.tag >> \
                   << parameters.s2i-builder-context >>
-      - run:
-          name: Build image with s2i
-          command: |
-            s2i build . \
-            brandnewbox/bnb-ruby:<< parameters.bnb-ruby-tag>> \
-            << parameters.image >>:<< parameters.tag >>  \
-            -p always \
-            -e RAILS_ENV=production \
-            -e DEVISE_SECRET_KEY=shipit_chokes_without_this \
-            -e DATABASE_URL=shipit_chokes_without_this \
-            -e OLD_ERP_DATABASE_URL=shipit_chokes_without_this
+      - when:
+          condition: <<parameters.s2i-builder-context>>
+          steps:
+            - run:
+                name: Build image with s2i and custom builder image
+                command: |
+                  s2i build . \
+                  brandnewbox/bnb-ruby:custom-<< parameters.tag >> \
+                  << parameters.image >>:<< parameters.tag >>  \
+                  -p always \
+                  -e RAILS_ENV=production \
+                  -e DEVISE_SECRET_KEY=shipit_chokes_without_this \
+                  -e DATABASE_URL=shipit_chokes_without_this \
+                  -e OLD_ERP_DATABASE_URL=shipit_chokes_without_this
+      - unless:
+          condition: <<parameters.s2i-builder-context>>
+          steps:
+            - run:
+                name: Build image with s2i and standard builder image
+                command: |
+                  s2i build . \
+                  brandnewbox/bnb-ruby:<< parameters.bnb-ruby-tag>> \
+                  << parameters.image >>:<< parameters.tag >>  \
+                  -p always \
+                  -e RAILS_ENV=production \
+                  -e DEVISE_SECRET_KEY=shipit_chokes_without_this \
+                  -e DATABASE_URL=shipit_chokes_without_this \
+                  -e OLD_ERP_DATABASE_URL=shipit_chokes_without_this
       - run:
           name: Tag image
           command: |
