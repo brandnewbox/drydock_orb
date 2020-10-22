@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.3.3
+        drydock: brandnewbox/drydock@1.3.4
       workflows:
         devops_flow:
           jobs:
@@ -339,34 +339,22 @@ jobs:
       bnb-ruby-tag:
         description: BNB Ruby Image To Use
         type: string
+      docker-context:
+        description: A term used by docker-compose to specify where the Dockerfile is that should be built
+        type: string
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
       - checkout
-      # Download and cache dependencies
-      # - restore_cache:
-      #     name: Restore Gem Cache
-      #     keys:
-      #       - v2-gem-{{ checksum "Gemfile.lock" }}
-      # - restore_cache:
-      #     name: Restore Yarn Cache
-      #     keys:
-      #       - v2-yarn-{{ checksum "yarn.lock" }}
-      # - run:
-      #     name: Configure Bundler
-      #     command: bundle config --local path vendor/bundle
-      
-      # Build (taken from https://github.com/brandnewbox/bnb-shipit/blob/master/app/models/s2i_builder.rb)
-      
-      # context is a term used by docker-compose to specify where the Dockerfile is that should be built
-      # Not going to use this in CircleCI because ??? - NCC @ BNB - July 1, 2020
-      # - run:
-      #     name: Build builder image
-      #     command: |
-      #       docker build -t \
-      #       brandnewbox/bnb-ruby:2.6-postgresql \
-      #       ./devops
-
+      - when:
+          condition: <<parameters.docker-context>>
+          steps:
+            - run:
+                name: Build Builder Image
+                command: |
+                  docker build -t \
+                  brandnewbox/bnb-ruby:<< parameters.bnb-ruby-tag>> \
+                  << parameters.docker-context >>
       - run:
           name: Build image with s2i
           command: |
