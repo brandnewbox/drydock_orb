@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.3.9
+        drydock: brandnewbox/drydock@1.4.0
       workflows:
         devops_flow:
           jobs:
@@ -331,9 +331,9 @@ jobs:
         description: Tag to use for image.
         type: string
       registry:
-        default: registry.digitalocean.com
         description: Registry to use for image.
         type: string
+        default: registry.digitalocean.com
       image:
         description: Image name.
         type: string
@@ -343,6 +343,10 @@ jobs:
       s2i-builder-context:
         description: An optional path to the directory containing a custom Dockerfile that S2I should use to build this project instead of just pulling the base image
         type: string
+      s2i-builder-environment-variables:
+        description: Customizable environment variables to pass to S2I during the final image build
+        type: string
+        default: -e RAILS_ENV=production -e DEVISE_SECRET_KEY=shipit_chokes_without_this -e DATABASE_URL=shipit_chokes_without_this
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
@@ -351,35 +355,30 @@ jobs:
           condition: <<parameters.s2i-builder-context>>
           steps:
             - run:
-                name: Build the local BNB Ruby builder image
+                name: Build the custom BNB Ruby builder image
                 command: |
                   docker build -t \
                   local-bnb-ruby-builder:latest \
                   << parameters.s2i-builder-context >>
             - run:
-                name: Set the custom builder environment variables
+                name: Build the final image on top of the custom BNB Ruby builder image (never pull)
                 command: |
-                  export S2I_PULL_POLICY=never; \
-                  export S2I_BUILDER_IMAGE=local-bnb-ruby-builder:latest
+                  s2i build . \
+                  local-bnb-ruby-builder:latest \
+                  << parameters.image >>:<< parameters.tag >>  \
+                  --pull-policy never \
+                  << parameters.s2i-builder-environment-variables >>
       - unless:
           condition: <<parameters.s2i-builder-context>>
           steps:
             - run:
-                name: Set the standard builder environment variables
+                name: Build the final image on top of a standard BNB Ruby builder image (always pull)
                 command: |
-                  export S2I_PULL_POLICY=always; \
-                  export S2I_BUILDER_IMAGE=brandnewbox/bnb-ruby:<< parameters.bnb-ruby-tag>>
-      - run:
-          name: Build the final image
-          command: |
-            s2i build . \
-            $S2I_BUILDER_IMAGE \
-            << parameters.image >>:<< parameters.tag >>  \
-            --pull-policy $S2I_PULL_POLICY \
-            -e RAILS_ENV=production \
-            -e DEVISE_SECRET_KEY=shipit_chokes_without_this \
-            -e DATABASE_URL=shipit_chokes_without_this \
-            -e OLD_ERP_DATABASE_URL=shipit_chokes_without_this
+                  s2i build . \
+                  brandnewbox/bnb-ruby:<< parameters.bnb-ruby-tag>> \
+                  << parameters.image >>:<< parameters.tag >>  \
+                  --pull-policy always \
+                  << parameters.s2i-builder-environment-variables >>
       - run:
           name: Tag image
           command: |
