@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.4.0
+        drydock: brandnewbox/drydock@1.4.1
       workflows:
         devops_flow:
           jobs:
@@ -343,6 +343,7 @@ jobs:
       s2i-builder-context:
         description: An optional path to the directory containing a custom Dockerfile that S2I should use to build this project instead of just pulling the base image
         type: string
+        default: no_context
       s2i-builder-environment-variables:
         description: Customizable environment variables to pass to S2I during the final image build
         type: string
@@ -351,8 +352,9 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - checkout
-      - when:
-          condition: <<parameters.s2i-builder-context>>
+      - unless:
+          condition:
+            equal: [ no_context, <<parameters.s2i-builder-context>> ] 
           steps:
             - run:
                 name: Build the custom BNB Ruby builder image
@@ -368,8 +370,9 @@ jobs:
                   << parameters.image >>:<< parameters.tag >>  \
                   --pull-policy never \
                   << parameters.s2i-builder-environment-variables >>
-      - unless:
-          condition: <<parameters.s2i-builder-context>>
+      - when:
+          condition:
+            equal: [ no_context, <<parameters.s2i-builder-context>> ] 
           steps:
             - run:
                 name: Build the final image on top of a standard BNB Ruby builder image (always pull)
