@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.3.8
+        drydock: brandnewbox/drydock@1.3.9
       workflows:
         devops_flow:
           jobs:
@@ -351,33 +351,35 @@ jobs:
           condition: <<parameters.s2i-builder-context>>
           steps:
             - run:
-                name: Build image with s2i and custom builder image
+                name: Build the local BNB Ruby builder image
                 command: |
                   docker build -t \
-                  custom_builder_image:latest \
-                  << parameters.s2i-builder-context >>; \
-                  s2i build . \
-                  custom_builder_image:latest \
-                  << parameters.image >>:<< parameters.tag >>  \
-                  -p always \
-                  -e RAILS_ENV=production \
-                  -e DEVISE_SECRET_KEY=shipit_chokes_without_this \
-                  -e DATABASE_URL=shipit_chokes_without_this \
-                  -e OLD_ERP_DATABASE_URL=shipit_chokes_without_this
+                  local-bnb-ruby-builder:latest \
+                  << parameters.s2i-builder-context >>
+            - run:
+                name: Set the custom builder environment variables
+                command: |
+                  export S2I_PULL_POLICY=never; \
+                  export S2I_BUILDER_IMAGE=local-bnb-ruby-builder:latest
       - unless:
           condition: <<parameters.s2i-builder-context>>
           steps:
             - run:
-                name: Build image with s2i and standard builder image
+                name: Set the standard builder environment variables
                 command: |
-                  s2i build . \
-                  brandnewbox/bnb-ruby:<< parameters.bnb-ruby-tag>> \
-                  << parameters.image >>:<< parameters.tag >>  \
-                  -p always \
-                  -e RAILS_ENV=production \
-                  -e DEVISE_SECRET_KEY=shipit_chokes_without_this \
-                  -e DATABASE_URL=shipit_chokes_without_this \
-                  -e OLD_ERP_DATABASE_URL=shipit_chokes_without_this
+                  export S2I_PULL_POLICY=always; \
+                  export S2I_BUILDER_IMAGE=brandnewbox/bnb-ruby:<< parameters.bnb-ruby-tag>>
+      - run:
+          name: Build the final image
+          command: |
+            s2i build . \
+            $S2I_BUILDER_IMAGE \
+            << parameters.image >>:<< parameters.tag >>  \
+            --pull-policy $S2I_PULL_POLICY \
+            -e RAILS_ENV=production \
+            -e DEVISE_SECRET_KEY=shipit_chokes_without_this \
+            -e DATABASE_URL=shipit_chokes_without_this \
+            -e OLD_ERP_DATABASE_URL=shipit_chokes_without_this
       - run:
           name: Tag image
           command: |
