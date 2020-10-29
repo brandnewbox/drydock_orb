@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.4.2
+        drydock: brandnewbox/drydock@1.4.3
       workflows:
         devops_flow:
           jobs:
@@ -326,8 +326,6 @@ jobs:
   s2i-build-and-push:
     docker:
       - image: brandnewbox/shipit-ruby
-        environment:
-          DATABASE_URL: postgres://not_every_config:tests_with_a_database@so_lets_be_nice:5432/to_those_guys
     parameters:
       tag:
         description: Tag to use for image.
@@ -349,7 +347,7 @@ jobs:
       s2i-builder-environment-variables:
         description: Customizable environment variables to pass to S2I during the final image build
         type: string
-        default: -e RAILS_ENV=production -e DEVISE_SECRET_KEY=shipit_chokes_without_this -e DATABASE_URL=shipit_chokes_without_this
+        default: -e RAILS_ENV=production -e DEVISE_SECRET_KEY=shipit_chokes_without_this -e DATABASE_URL=postgres://user:password@host:5432/database
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
