@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.4.1
+        drydock: brandnewbox/drydock@1.4.2
       workflows:
         devops_flow:
           jobs:
@@ -326,6 +326,8 @@ jobs:
   s2i-build-and-push:
     docker:
       - image: brandnewbox/shipit-ruby
+        environment:
+          DATABASE_URL: postgres://not_every_config:tests_with_a_database@so_lets_be_nice:5432/to_those_guys
     parameters:
       tag:
         description: Tag to use for image.
