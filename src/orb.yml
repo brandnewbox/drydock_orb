@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.4.5
+        drydock: brandnewbox/drydock@1.4.6
       workflows:
         devops_flow:
           jobs:
@@ -124,7 +124,7 @@ jobs:
       - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
         environment:
           RAILS_ENV: test
-          DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
+          DATABASE_URL: postgis://circleci:password@localhost:5432/my_database
 
       - image: mdillon/postgis:9.5
         environment:
