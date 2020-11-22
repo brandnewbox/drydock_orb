@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.4.6
+        drydock: brandnewbox/drydock@1.4.7
       workflows:
         devops_flow:
           jobs:
@@ -77,7 +77,7 @@ jobs:
     docker:
       - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
 
-    working_directory: /app
+    working_directory: ~/repo
 
     steps:
       - checkout
@@ -132,7 +132,7 @@ jobs:
           POSTGRES_PASSWORD: password
           POSTGRES_DB: my_database
 
-    working_directory: /app
+    working_directory: ~/repo
 
     steps:
       - checkout
@@ -199,7 +199,7 @@ jobs:
           POSTGRES_PASSWORD: password
           POSTGRES_DB: my_database
 
-    working_directory: /app
+    working_directory: ~/repo
 
     steps:
       - checkout
@@ -273,7 +273,7 @@ jobs:
 
       - image: elasticsearch:<<parameters.elasticsearch-tag>>
 
-    working_directory: /app
+    working_directory: ~/repo
 
     steps:
       - checkout
@@ -340,7 +340,7 @@ jobs:
           MYSQL_ROOT_PASSWORD: password
           MYSQL_DATABASE: my_database
 
-    working_directory: /app
+    working_directory: ~/repo
 
     steps:
       - checkout
