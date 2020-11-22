@@ -118,8 +118,8 @@ commands:
       Default Process for Running Tests
     steps:
       - checkout
-      - drydock/manage-gems
-      - drydock/manage-yarn
+      - manage-gems
+      - manage-yarn
       - run:
           name: Configure Bundler
           command: bundle config --local path vendor/bundle
@@ -159,8 +159,8 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - drydock/manage-gems
-      - drydock/manage-yarn
+      - manage-gems
+      - manage-yarn
 
   test-with-postgis:
     parameters:
@@ -179,7 +179,7 @@ jobs:
           POSTGRES_DB: my_database
     working_directory: ~/repo
     steps:
-      - drydock/default-test-steps
+      - default-test-steps
 
   test-with-postgres:
     parameters:
@@ -198,7 +198,7 @@ jobs:
           POSTGRES_DB: my_database
     working_directory: ~/repo
     steps:
-      - drydock/default-test-steps
+      - default-test-steps
 
   test-with-postgres-and-elasticsearch:
     parameters:
@@ -223,7 +223,7 @@ jobs:
       - image: elasticsearch:<<parameters.elasticsearch-tag>>
     working_directory: ~/repo
     steps:
-      - drydock/default-test-steps
+      - default-test-steps
 
   test-with-mysql:
     parameters:
@@ -242,7 +242,7 @@ jobs:
           MYSQL_DATABASE: my_database
     working_directory: ~/repo
     steps:
-      - drydock/default-test-steps
+      - default-test-steps
 
   s2i-build-and-push:
     docker:
