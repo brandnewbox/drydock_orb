@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.4.7
+        drydock: brandnewbox/drydock@1.4.8
       workflows:
         devops_flow:
           jobs:
@@ -68,6 +68,86 @@ examples:
                 requires:
                   - hold
 
+commands:
+  manage-gems:
+    description: |
+      Manage Gem Dependencies
+    parameters:
+      version:
+        default: "2"
+        description: Cache Key Version Number
+        type: string
+    steps:
+      - restore_cache:
+          name: Restore Gem Cache
+          keys:
+            - v<< parameters.version >>-gem-{{ checksum "Gemfile.lock" }}
+      - run:
+          name: Install Gem Dependencies
+          command: |
+            gem install bundler
+            bundle install --jobs=4 --retry=3 --path vendor/bundle
+      - save_cache:
+          name: Save Gem Cache
+          paths:
+            - ./vendor/bundle
+          key: v<< parameters.version >>-gem-{{ checksum "Gemfile.lock" }}
+  manage-yarn:
+    description: |
+      Manage Yarn Dependencies
+    parameters:
+      version:
+        default: "2"
+        description: Cache Key Version Number
+        type: string
+    steps:
+      - restore_cache:
+          name: Restore Yarn Cache
+          keys:
+            - v<< parameters.version >>-yarn-{{ checksum "yarn.lock" }}
+      - run:
+          name: Install Yarn Dependencies
+          command: yarn install --frozen-lockfile
+      - save_cache:
+          name: Save Yarn Cache
+          paths:
+            - ~/.cache/yarn
+          key: v<< parameters.version >>-yarn-{{ checksum "yarn.lock" }}
+  default-test-steps:
+    description: |
+      Default Process for Running Tests
+    steps:
+      - checkout
+      - drydock/manage-gems
+      - drydock/manage-yarn
+      - run:
+          name: Configure Bundler
+          command: bundle config --local path vendor/bundle
+      - run: 
+          name: Create Database
+          command: bundle exec rake db:create
+      - run: 
+          name: Migrate Database
+          command: bundle exec rake db:migrate
+      - run:
+          name: Run Tests
+          command: |
+            mkdir /tmp/test-results
+            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | \
+              circleci tests split --split-by=timings)"
+
+            bundle exec rspec \
+              --format progress \
+              --format RspecJunitFormatter \
+              --out /tmp/test-results/rspec.xml \
+              --format progress \
+              $TEST_FILES
+      - store_test_results:
+          path: /tmp/test-results
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: test-
+
 jobs:
   build:
     parameters:
@@ -76,44 +156,11 @@ jobs:
         type: string
     docker:
       - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
-
     working_directory: ~/repo
-
     steps:
       - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          name: Restore Gem Cache
-          keys:
-            - v2-gem-{{ checksum "Gemfile.lock" }}
-
-      - run:
-          name: Install Gem Dependencies
-          command: |
-            gem install bundler
-            bundle install --jobs=4 --retry=3 --path vendor/bundle
-
-      - save_cache:
-          name: Save Gem Cache
-          paths:
-            - ./vendor/bundle
-          key: v2-gem-{{ checksum "Gemfile.lock" }}
-
-      - restore_cache:
-          name: Restore Yarn Cache
-          keys:
-            - v2-yarn-{{ checksum "yarn.lock" }}
-
-      - run:
-          name: Install Yarn Dependencies
-          command: yarn install --frozen-lockfile
-
-      - save_cache:
-          name: Save Yarn Cache
-          paths:
-            - ~/.cache/yarn
-          key: v2-yarn-{{ checksum "yarn.lock" }}
+      - drydock/manage-gems
+      - drydock/manage-yarn
 
   test-with-postgis:
     parameters:
@@ -125,62 +172,14 @@ jobs:
         environment:
           RAILS_ENV: test
           DATABASE_URL: postgis://circleci:password@localhost:5432/my_database
-
       - image: mdillon/postgis:9.5
         environment:
           POSTGRES_USER: circleci
           POSTGRES_PASSWORD: password
           POSTGRES_DB: my_database
-
     working_directory: ~/repo
-
     steps:
-      - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          name: Restore Gem Cache
-          keys:
-            - v2-gem-{{ checksum "Gemfile.lock" }}
-
-      - restore_cache:
-          name: Restore Yarn Cache
-          keys:
-            - v2-yarn-{{ checksum "yarn.lock" }}
-
-      - run:
-          name: Configure Bundler
-          command: bundle config --local path vendor/bundle
-        
-      - run: 
-          name: Create Database
-          command: bundle exec rake db:create
-
-      - run: 
-          name: Migrate Database
-          command: bundle exec rake db:migrate
-
-      # run tests!
-      - run:
-          name: Run Tests
-          command: |
-            mkdir /tmp/test-results
-            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | \
-              circleci tests split --split-by=timings)"
-
-            bundle exec rspec \
-              --format progress \
-              --format RspecJunitFormatter \
-              --out /tmp/test-results/rspec.xml \
-              --format progress \
-              $TEST_FILES
-
-      # collect reports
-      - store_test_results:
-          path: /tmp/test-results
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: test-
+      - drydock/default-test-steps
 
   test-with-postgres:
     parameters:
@@ -192,62 +191,14 @@ jobs:
         environment:
           RAILS_ENV: test
           DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
-
       - image: circleci/postgres:9.5-alpine
         environment:
           POSTGRES_USER: circleci
           POSTGRES_PASSWORD: password
           POSTGRES_DB: my_database
-
     working_directory: ~/repo
-
     steps:
-      - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          name: Restore Gem Cache
-          keys:
-            - v2-gem-{{ checksum "Gemfile.lock" }}
-
-      - restore_cache:
-          name: Restore Yarn Cache
-          keys:
-            - v2-yarn-{{ checksum "yarn.lock" }}
-
-      - run:
-          name: Configure Bundler
-          command: bundle config --local path vendor/bundle
-        
-      - run: 
-          name: Create Database
-          command: bundle exec rake db:create
-
-      - run: 
-          name: Migrate Database
-          command: bundle exec rake db:migrate
-
-      # run tests!
-      - run:
-          name: Run Tests
-          command: |
-            mkdir /tmp/test-results
-            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | \
-              circleci tests split --split-by=timings)"
-
-            bundle exec rspec \
-              --format progress \
-              --format RspecJunitFormatter \
-              --out /tmp/test-results/rspec.xml \
-              --format progress \
-              $TEST_FILES
-
-      # collect reports
-      - store_test_results:
-          path: /tmp/test-results
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: test-
+      - drydock/default-test-steps
 
   test-with-postgres-and-elasticsearch:
     parameters:
@@ -264,64 +215,15 @@ jobs:
           RAILS_ENV: test
           DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
           ELASTICSEARCH_URL: http://localhost:9200
-
       - image: circleci/postgres:9.5-alpine
         environment:
           POSTGRES_USER: circleci
           POSTGRES_PASSWORD: password
           POSTGRES_DB: my_database
-
       - image: elasticsearch:<<parameters.elasticsearch-tag>>
-
     working_directory: ~/repo
-
     steps:
-      - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          name: Restore Gem Cache
-          keys:
-            - v2-gem-{{ checksum "Gemfile.lock" }}
-
-      - restore_cache:
-          name: Restore Yarn Cache
-          keys:
-            - v2-yarn-{{ checksum "yarn.lock" }}
-
-      - run:
-          name: Configure Bundler
-          command: bundle config --local path vendor/bundle
-        
-      - run: 
-          name: Create Database
-          command: bundle exec rake db:create
-
-      - run: 
-          name: Migrate Database
-          command: bundle exec rake db:migrate
-
-      # run tests!
-      - run:
-          name: Run Tests
-          command: |
-            mkdir /tmp/test-results
-            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | \
-              circleci tests split --split-by=timings)"
-
-            bundle exec rspec \
-              --format progress \
-              --format RspecJunitFormatter \
-              --out /tmp/test-results/rspec.xml \
-              --format progress \
-              $TEST_FILES
-
-      # collect reports
-      - store_test_results:
-          path: /tmp/test-results
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: test-results
+      - drydock/default-test-steps
 
   test-with-mysql:
     parameters:
@@ -333,62 +235,14 @@ jobs:
         environment:
           RAILS_ENV: test
           DATABASE_URL: mysql2://root:password@127.0.0.1:3306/my_database
-
       - image: circleci/mysql:5.7
         environment:
           MYSQL_HOST: 127.0.0.1
           MYSQL_ROOT_PASSWORD: password
           MYSQL_DATABASE: my_database
-
     working_directory: ~/repo
-
     steps:
-      - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          name: Restore Gem Cache
-          keys:
-            - v2-gem-{{ checksum "Gemfile.lock" }}
-
-      - restore_cache:
-          name: Restore Yarn Cache
-          keys:
-            - v2-yarn-{{ checksum "yarn.lock" }}
-
-      - run:
-          name: Configure Bundler
-          command: bundle config --local path vendor/bundle
-        
-      - run: 
-          name: Create Database
-          command: bundle exec rake db:create
-
-      - run: 
-          name: Migrate Database
-          command: bundle exec rake db:migrate
-
-      # run tests!
-      - run:
-          name: Run Tests
-          command: |
-            mkdir /tmp/test-results
-            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | \
-              circleci tests split --split-by=timings)"
-
-            bundle exec rspec \
-              --format progress \
-              --format RspecJunitFormatter \
-              --out /tmp/test-results/rspec.xml \
-              --format progress \
-              $TEST_FILES
-
-      # collect reports
-      - store_test_results:
-          path: /tmp/test-results
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: test-
+      - drydock/default-test-steps
 
   s2i-build-and-push:
     docker:
