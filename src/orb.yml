@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.4.8
+        drydock: brandnewbox/drydock@1.4.9
       workflows:
         devops_flow:
           jobs:
