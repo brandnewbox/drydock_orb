@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.4.8
+        drydock: brandnewbox/drydock@1.4.9
       workflows:
         devops_flow:
           jobs:
@@ -272,6 +272,7 @@ jobs:
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
+          version: 19.03.13
       - checkout
       - unless:
           condition:
