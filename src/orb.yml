@@ -200,6 +200,35 @@ jobs:
     steps:
       - default-test-steps
 
+  test-with-postgres-and-highcharts:
+    parameters:
+      bnb-ruby-tag:
+        description: BNB Ruby Image To Use
+        type: string
+      postgres-tag:
+        description: Postgres Tag To Use
+        type: string
+        default: "11-alpine"
+      highcharts-tag:
+        description: HighCharts Tag To Use
+        type: string
+        default: "latest"
+    docker:
+      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
+        environment:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
+          HIGHCHARTS_URL: http://localhost:8080
+      - image: circleci/postgres:<<parameters.postgres-tag>>
+        environment:
+          POSTGRES_USER: circleci
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: my_database
+      - image: brandnewbox/highcharts-export-node:<<parameters.highcharts-tag>>
+    working_directory: ~/repo
+    steps:
+      - default-test-steps
+
   test-with-postgres-and-elasticsearch:
     parameters:
       bnb-ruby-tag:
