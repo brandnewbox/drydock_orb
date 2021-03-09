@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.4.9
+        drydock: brandnewbox/drydock@1.5.1
       workflows:
         devops_flow:
           parameters:
@@ -260,6 +260,35 @@ jobs:
     steps:
       - default-test-steps
 
+  test-with-postgres-and-highcharts:
+    parameters:
+      bnb-ruby-tag:
+        description: BNB Ruby Image To Use
+        type: string
+      postgres-tag:
+        description: Postgres Tag To Use
+        type: string
+        default: "11-alpine"
+      highcharts-tag:
+        description: HighCharts Tag To Use
+        type: string
+        default: "latest"
+    docker:
+      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
+        environment:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
+          HIGHCHARTS_URL: http://localhost:8080
+      - image: circleci/postgres:<<parameters.postgres-tag>>
+        environment:
+          POSTGRES_USER: circleci
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: my_database
+      - image: brandnewbox/highcharts-export-node:<<parameters.highcharts-tag>>
+    working_directory: ~/repo
+    steps:
+      - default-test-steps
+
   test-with-postgres-and-elasticsearch:
     parameters:
       bnb-ruby-tag:
@@ -332,6 +361,7 @@ jobs:
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
+          version: 19.03.13
       - checkout
       - unless:
           condition:
