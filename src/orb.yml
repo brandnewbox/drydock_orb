@@ -167,16 +167,19 @@ commands:
       - store_artifacts:
           path: /tmp/test-results
           destination: test-
-  login-to-do-registry:
+  login-to-private-registry:
     description: |
-      Log into DO registry using context provided env vars
+      Log into a registry using context provided env vars
+    parameters:
+      registry:
+        description: Private registry
+        type: string
+        default: registry.digitalocean.com
     steps:
       - run:
           name: Log into DO registry
           command: |
             docker login -u $DO_BNB_REGISTRY_ACCESS_TOKEN -p $DO_BNB_REGISTRY_ACCESS_TOKEN << parameters.registry >>
-      
-      
 
 jobs:
   build-and-push-builder:
@@ -212,7 +215,7 @@ jobs:
           command: |
             docker tag << parameters.builder-image >> \
             << parameters.registry >>/<< parameters.builder-image >>
-      - login-to-do-registry
+      - login-to-private-registry
       - run:
           name: Push image with commit SHA tag
           command: |
@@ -370,7 +373,7 @@ jobs:
           docker_layer_caching: true
           version: 19.03.13
       - checkout
-      - login-to-do-registry
+      - login-to-private-registry
       - run:
           name: Pull the builder image
           command: |
