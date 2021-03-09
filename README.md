@@ -13,3 +13,10 @@ Make sure you set the `RAILS_CREDENTIALS_KEY` in your CircleCI project settings 
 # Updating?
 
 Don't forget to bump the version in `.circleci/config.yml` and in the example in `src/orb.yml` everytime!
+
+# Accessing DO Registry
+
+We are taking advantage of [this](https://www.digitalocean.com/docs/container-registry/how-to/use-registry-docker-kubernetes/) to authenticate with DO:
+
+>  If you’re in an environment that doesn’t have doctl or want to use an existing API token, you can simulate what doctl registry login does by using an API token string as the username and password when calling docker login. 
+ 

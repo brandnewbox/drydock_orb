@@ -6,65 +6,85 @@ orbs:
   kubernetes: circleci/kubernetes@0.11.0
 
 description: |
-  Install and configure the Rancher2 CLI
+  Build, test, and deploy a BNB rails application
 examples:
   simple_install_and_configure:
-    description: Install the Rancher2 CLI, if not available
+    description: Build, test, and deploy my rails application
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.4.8
+        drydock: brandnewbox/drydock@1.4.9
       workflows:
         devops_flow:
+          parameters:
+            builder-image-name:
+              type: string
+              default: "brandnewbox/my-app-builder"
+            builder-image-tag:
+              type: string
+              default: $CIRCLE_SHA1
+            final-image-name:
+              type: string
+              default: "brandnewbox/my-app"
+            final-image-tag:
+              type: string
+              default: $CIRCLE_SHA1
+            rancher-context:
+              type: string
+              default: "c-abcde:p-vwxyz"
+            rancher-namespace:
+              type: string
+              default: "rails"
           jobs:
-            - drydock/build:
-                bnb-ruby-tag: 2.6-postgresql
+            - drydock/build-and-push-builder:
+                dockerfile-path: ./devops
+                builder-image: << pipeline.parameters.builder-image-name >>:<< pipeline.parameters.builder-image-tag >>
+                context: DO_BNB_REGISTRY
             - drydock/test-with-postgres:
-                bnb-ruby-tag: 2.6-postgresql
+                builder-image: << pipeline.parameters.builder-image-name >>:<< pipeline.parameters.builder-image-tag >>
+                context: DO_BNB_REGISTRY
                 requires:
-                  - drydock/build
-            - drydock/s2i-build-and-push:
-                bnb-ruby-tag: 2.6-postgresql
-                s2i-builder-context: ./devops
+                  - drydock/build-and-push-builder
+            - drydock/build-and-push-final:
+                builder-image: << pipeline.parameters.builder-image-name >>:<< pipeline.parameters.builder-image-tag >>
+                final-image: << pipeline.parameters.final-image-name >>:< pipeline.parameters.final-image-tag >>
+                context: DO_BNB_REGISTRY
                 filters:
                   branches:
-                    only: /^(master|staging)$/
-                context: DO_BNB_REGISTRY
-                tag: $CIRCLE_SHA1
-                image: brandnewbox/my-app
+                    only: /^(main|staging)$/
                 requires:
                   - drydock/test-with-postgres
             - hold:
-                filters:
-                  branches:
-                    only: /^(master|staging)$/
-                requires:
-                  - drydock/s2i-build-and-push
                 type: approval
-            - drydock/create-deployment:
                 filters:
                   branches:
-                    only: /^(master|staging)$/
-                context: DO_BNB_REGISTRY
-                rancher-context: 'c-abcde:p-vwxyz'
-                rancher-namespace: rails
+                    only: /^(main|staging)$/
+                requires:
+                  - drydock/build-and-push-final
+            - drydock/create-deployment:
                 rancher-deployment: rails-puma-deployment
                 rancher-container: rails-puma-container
-                tag: $CIRCLE_SHA1
-                image: brandnewbox/my-app
+                rancher-namespace: << pipeline.parameters.rancher-namespace >>
+                rancher-context: << pipeline.parameters.rancher-context >>
+                final-image-name: << pipeline.parameters.final-image-name >>
+                final-image-tag: << pipeline.parameters.final-image-tag >>
+                context: DO_BNB_REGISTRY
+                filters:
+                  branches:
+                    only: /^(main|staging)$/
                 requires:
                   - hold
             - drydock/create-deployment:
-                filters:
-                  branches:
-                    only: /^(master|staging)$/
-                context: DO_BNB_REGISTRY
-                rancher-context: 'c-abcde:p-vwxyz'
-                rancher-namespace: rails
                 rancher-deployment: rails-sidekiq-deployment
                 rancher-container: rails-sidekiq-container
-                tag: $CIRCLE_SHA1
-                image: brandnewbox/my-app
+                rancher-namespace: << pipeline.parameters.rancher-namespace >>
+                rancher-context: << pipeline.parameters.rancher-context >>
+                final-image-name: << pipeline.parameters.final-image-name >>
+                final-image-tag: << pipeline.parameters.final-image-tag >>
+                context: DO_BNB_REGISTRY
+                filters:
+                  branches:
+                    only: /^(main|staging)$/
                 requires:
                   - hold
 
@@ -149,26 +169,59 @@ commands:
           destination: test-
 
 jobs:
-  build:
-    parameters:
-      bnb-ruby-tag:
-        description: BNB Ruby Image Tag To Use
-        type: string
+  build-and-push-builder:
+    description: |
+      Use the application's custom dockerfile to build the builder image and then
+      push to a private registry in digital ocean for use in future builds.
     docker:
-      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
-    working_directory: ~/repo
+      - image: brandnewbox/shipit-ruby
+    parameters:
+      dockerfile-path:
+        description: Path to the directory containing a custom Dockerfile that S2I should use to build this project instead of just pulling the base image
+        type: string
+        default: ./devops
+      builder-image:
+        description: Name and tag of the builder image
+        type: string
+      registry:
+        description: Registry of the builder image
+        type: string
+        default: registry.digitalocean.com
     steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
       - checkout
-      - manage-gems
-      - manage-yarn
+      - run:
+          name: Build the builder image
+          command: |
+            docker build -t \
+            << parameters.builder-image >> \
+            << parameters.dockerfile-path >>
+                  # Push
+      - digitalocean/install
+      - digitalocean/initialize:
+          digitalocean-access-token: DO_BNB_REGISTRY_ACCESS_TOKEN
+      - run: doctl registry login
+      - run:
+          name: Push image
+          command: |
+            docker push \
+            << parameters.registry >>/<< parameters.builder-image >>
 
   test-with-postgis:
     parameters:
-      bnb-ruby-tag:
-        description: BNB Ruby Image To Use
+      builder-image:
+        description: Name and tag of the builder image
         type: string
+      registry:
+        description: Registry of the builder image
+        type: string
+        default: registry.digitalocean.com
     docker:
-      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
+      - image: << parameters.registry >>/<< parameters.builder-image >>
+        auth:
+          username: DO_BNB_REGISTRY_ACCESS_TOKEN
+          password: DO_BNB_REGISTRY_ACCESS_TOKEN
         environment:
           RAILS_ENV: test
           DATABASE_URL: postgis://circleci:password@localhost:5432/my_database
@@ -183,11 +236,18 @@ jobs:
 
   test-with-postgres:
     parameters:
-      bnb-ruby-tag:
-        description: BNB Ruby Image To Use
+      builder-image:
+        description: Name and tag of the builder image
         type: string
+      registry:
+        description: Registry of the builder image
+        type: string
+        default: registry.digitalocean.com
     docker:
-      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
+      - image: << parameters.registry >>/<< parameters.builder-image >>
+        auth:
+          username: DO_BNB_REGISTRY_ACCESS_TOKEN
+          password: DO_BNB_REGISTRY_ACCESS_TOKEN
         environment:
           RAILS_ENV: test
           DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
@@ -244,7 +304,7 @@ jobs:
     steps:
       - default-test-steps
 
-  s2i-build-and-push:
+  build-and-push-final:
     docker:
       - image: brandnewbox/shipit-ruby
     parameters:
