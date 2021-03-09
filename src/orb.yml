@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.5.2
+        drydock: brandnewbox/drydock@1.5.3
       workflows:
         devops_flow:
           parameters:
@@ -47,7 +47,8 @@ examples:
                   - drydock/build-and-push-builder
             - drydock/build-and-push-final:
                 builder-image: << pipeline.parameters.builder-image-name >>:<< pipeline.parameters.builder-image-tag >>
-                final-image: << pipeline.parameters.final-image-name >>:< pipeline.parameters.final-image-tag >>
+                final-image-name: << pipeline.parameters.final-image-name >>
+                final-image-tag: << pipeline.parameters.final-image-tag >>
                 context: DO_BNB_REGISTRY
                 filters:
                   branches:
@@ -335,23 +336,19 @@ jobs:
     docker:
       - image: brandnewbox/shipit-ruby
     parameters:
-      tag:
-        description: Tag to use for image.
-        type: string
       registry:
-        description: Registry to use for image.
+        description: Registry to use for final and builder images.
         type: string
         default: registry.digitalocean.com
-      image:
-        description: Image name.
+      builder-image:
+        description: Builder image name and tag
         type: string
-      bnb-ruby-tag:
-        description: BNB Ruby Image To Use
+      final-image-name:
+        description: Final image name
         type: string
-      s2i-builder-context:
-        description: An optional path to the directory containing a custom Dockerfile that S2I should use to build this project instead of just pulling the base image
+      final-image-tag:
+        description: Final image tag
         type: string
-        default: no_context
       s2i-builder-environment-variables:
         description: Customizable environment variables to pass to S2I during the final image build
         type: string
@@ -361,51 +358,46 @@ jobs:
           docker_layer_caching: true
           version: 19.03.13
       - checkout
-      - unless:
-          condition:
-            equal: [ no_context, <<parameters.s2i-builder-context>> ] 
-          steps:
-            - run:
-                name: Build the custom BNB Ruby builder image
-                command: |
-                  docker build -t \
-                  local-bnb-ruby-builder:latest \
-                  << parameters.s2i-builder-context >>
-            - run:
-                name: Build the final image on top of the custom BNB Ruby builder image (never pull)
-                command: |
-                  s2i build . \
-                  local-bnb-ruby-builder:latest \
-                  << parameters.image >>:<< parameters.tag >>  \
-                  --pull-policy never \
-                  << parameters.s2i-builder-environment-variables >>
-      - when:
-          condition:
-            equal: [ no_context, <<parameters.s2i-builder-context>> ] 
-          steps:
-            - run:
-                name: Build the final image on top of a standard BNB Ruby builder image (always pull)
-                command: |
-                  s2i build . \
-                  brandnewbox/bnb-ruby:<< parameters.bnb-ruby-tag>> \
-                  << parameters.image >>:<< parameters.tag >>  \
-                  --pull-policy always \
-                  << parameters.s2i-builder-environment-variables >>
-      - run:
-          name: Tag image
-          command: |
-            docker tag << parameters.image >>:<< parameters.tag >> \
-            << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
-      # Push
       - digitalocean/install
       - digitalocean/initialize:
           digitalocean-access-token: DO_BNB_REGISTRY_ACCESS_TOKEN
       - run: doctl registry login
       - run:
-          name: Push image
+          name: Pull the builder image
+          command: |
+            docker pull << parameters.registry >>/<< parameters.builder-image >>
+      - run:
+          name: Pull latest final image for S2I artifacts and retag to latest local image
+          command: |
+            (docker pull << parameters.registry >>/<< parameters.final-image-name >>:latest && docker tag << parameters.registry >>/<< parameters.final-image-name >>:latest << parameters.final-image-name >>:latest) || echo "No image uploaded"
+      - run:
+          name: Build the final image on top of the builder image
+          command: |
+            s2i build . \
+            << parameters.builder-image >> \
+            << parameters.final-image-name >>:latest  \
+            --pull-policy never \
+            << parameters.s2i-builder-environment-variables >>
+      - run:
+          name: Tag image with commit SHA tag
+          command: |
+            docker tag << parameters.final-image-name >>:latest \
+            << parameters.registry >>/<< parameters.final-image-name >>:<< parameters.final-image-tag >>
+      - run:
+          name: Tag image with latest tag
+          command: |
+            docker tag << parameters.final-image-name >>:latest \
+            << parameters.registry >>/<< parameters.final-image-name >>:latest
+      - run:
+          name: Push image with commit SHA tag
           command: |
             docker push \
-            << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
+            << parameters.registry >>/<< parameters.final-image-name >>:<< parameters.final-image-tag >>
+      - run:
+          name: Push image with latest tag
+          command: |
+            docker push \
+            << parameters.registry >>/<< parameters.final-image-name >>:latest
   # Create/Update DigitalOcean Deployment
   create-deployment:
     docker:
