@@ -239,7 +239,6 @@ jobs:
       - default-test-steps
 
   test-with-postgres:
-    machine: true
     parameters:
       builder-image:
         description: Name and tag of the builder image
