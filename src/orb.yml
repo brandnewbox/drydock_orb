@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.5.7
+        drydock: brandnewbox/drydock@1.5.8
       workflows:
         devops_flow:
           parameters:
@@ -167,6 +167,16 @@ commands:
       - store_artifacts:
           path: /tmp/test-results
           destination: test-
+  login-to-do-registry:
+    description: |
+      Log into DO registry using context provided env vars
+    steps:
+      - run:
+          name: Log into DO registry
+          command: |
+            docker login -u $DO_BNB_REGISTRY_ACCESS_TOKEN -p $DO_BNB_REGISTRY_ACCESS_TOKEN << parameters.registry >>
+      
+      
 
 jobs:
   build-and-push-builder:
@@ -198,14 +208,11 @@ jobs:
             << parameters.builder-image >> \
             << parameters.dockerfile-path >>
       - run:
-          name: Log into DO registry
-          command: |
-            docker login -u $DO_BNB_REGISTRY_ACCESS_TOKEN -p $DO_BNB_REGISTRY_ACCESS_TOKEN << parameters.registry >>
-      - run:
           name: Tag image with commit SHA tag
           command: |
             docker tag << parameters.builder-image >> \
             << parameters.registry >>/<< parameters.builder-image >>
+      - login-to-do-registry
       - run:
           name: Push image with commit SHA tag
           command: |
@@ -363,10 +370,7 @@ jobs:
           docker_layer_caching: true
           version: 19.03.13
       - checkout
-      - digitalocean/install
-      - digitalocean/initialize:
-          digitalocean-access-token: DO_BNB_REGISTRY_ACCESS_TOKEN
-      - run: doctl registry login
+      - login-to-do-registry
       - run:
           name: Pull the builder image
           command: |
