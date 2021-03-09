@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.5.5
+        drydock: brandnewbox/drydock@1.5.6
       workflows:
         devops_flow:
           parameters:
@@ -224,8 +224,8 @@ jobs:
     docker:
       - image: << parameters.registry >>/<< parameters.builder-image >>
         auth:
-          username: DO_BNB_REGISTRY_ACCESS_TOKEN
-          password: DO_BNB_REGISTRY_ACCESS_TOKEN
+          username: $DO_BNB_REGISTRY_ACCESS_TOKEN
+          password: $DO_BNB_REGISTRY_ACCESS_TOKEN
         environment:
           RAILS_ENV: test
           DATABASE_URL: postgis://circleci:password@localhost:5432/my_database
@@ -239,6 +239,7 @@ jobs:
       - default-test-steps
 
   test-with-postgres:
+    machine: true
     parameters:
       builder-image:
         description: Name and tag of the builder image
@@ -250,8 +251,8 @@ jobs:
     docker:
       - image: << parameters.registry >>/<< parameters.builder-image >>
         auth:
-          username: DO_BNB_REGISTRY_ACCESS_TOKEN
-          password: DO_BNB_REGISTRY_ACCESS_TOKEN
+          username: $DO_BNB_REGISTRY_ACCESS_TOKEN
+          password: $DO_BNB_REGISTRY_ACCESS_TOKEN
         environment:
           RAILS_ENV: test
           DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
@@ -261,7 +262,7 @@ jobs:
           POSTGRES_PASSWORD: password
           POSTGRES_DB: my_database
     working_directory: ~/repo
-    steps:
+    steps:      
       - default-test-steps
 
   test-with-postgres-and-highcharts:
