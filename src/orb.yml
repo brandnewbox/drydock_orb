@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.5.3
+        drydock: brandnewbox/drydock@1.5.4
       workflows:
         devops_flow:
           parameters:
@@ -38,7 +38,8 @@ examples:
           jobs:
             - drydock/build-and-push-builder:
                 dockerfile-path: ./devops
-                builder-image: << pipeline.parameters.builder-image-name >>:<< pipeline.parameters.builder-image-tag >>
+                builder-image-name: << pipeline.parameters.builder-image-name >>
+                builder-image-tag: << pipeline.parameters.builder-image-tag >>
                 context: DO_BNB_REGISTRY
             - drydock/test-with-postgres:
                 builder-image: << pipeline.parameters.builder-image-name >>:<< pipeline.parameters.builder-image-tag >>
@@ -196,13 +197,17 @@ jobs:
             docker build -t \
             << parameters.builder-image >> \
             << parameters.dockerfile-path >>
-                  # Push
       - digitalocean/install
       - digitalocean/initialize:
           digitalocean-access-token: DO_BNB_REGISTRY_ACCESS_TOKEN
       - run: doctl registry login
       - run:
-          name: Push image
+          name: Tag image with commit SHA tag
+          command: |
+            docker tag << parameters.builder-image >> \
+            << parameters.registry >>/<< parameters.builder-image >>
+      - run:
+          name: Push image with commit SHA tag
           command: |
             docker push \
             << parameters.registry >>/<< parameters.builder-image >>
