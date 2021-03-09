@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.5.1
+        drydock: brandnewbox/drydock@1.5.2
       workflows:
         devops_flow:
           parameters:
@@ -66,8 +66,7 @@ examples:
                 rancher-container: rails-puma-container
                 rancher-namespace: << pipeline.parameters.rancher-namespace >>
                 rancher-context: << pipeline.parameters.rancher-context >>
-                final-image-name: << pipeline.parameters.final-image-name >>
-                final-image-tag: << pipeline.parameters.final-image-tag >>
+                final-image: << pipeline.parameters.final-image-name >>:<< pipeline.parameters.final-image-tag >>
                 context: DO_BNB_REGISTRY
                 filters:
                   branches:
@@ -79,8 +78,7 @@ examples:
                 rancher-container: rails-sidekiq-container
                 rancher-namespace: << pipeline.parameters.rancher-namespace >>
                 rancher-context: << pipeline.parameters.rancher-context >>
-                final-image-name: << pipeline.parameters.final-image-name >>
-                final-image-tag: << pipeline.parameters.final-image-tag >>
+                final-image: << pipeline.parameters.final-image-name >>:<< pipeline.parameters.final-image-tag >>
                 context: DO_BNB_REGISTRY
                 filters:
                   branches:
@@ -433,8 +431,8 @@ jobs:
       rancher-container:
         description: Rancher container
         type: string
-      image:
-        description: New image
+      final-image:
+        description: Name and tag of final image
         type: string
       registry:
         default: registry.digitalocean.com
@@ -444,11 +442,7 @@ jobs:
         default: RAILS_CREDENTIALS_KEY
         description: Envrionment Variable to use for the Rails Credentials Key.
         type: string
-      tag:
-        description: Tag to use for image.
-        type: string
     steps:
-      - checkout
       - rancher2_cli/install
       - rancher2_cli/initialize:
           rancher-token: RANCHER_TOKEN
@@ -469,6 +463,6 @@ jobs:
       # Now update the secret
       - run: rancher kubectl -n << parameters.rancher-namespace >> get secret rails-credentials -o json | jq --arg key "$(echo $<< parameters.credentials-key-env-var >> | base64)" '.data["rails-credentials-key"]=$key' | rancher kubectl -n << parameters.rancher-namespace >> apply -f -
       # Now update the image in your deployment
-      - run: rancher kubectl -n << parameters.rancher-namespace >> set image << parameters.rancher-workload-type >>/<< parameters.rancher-deployment >> << parameters.rancher-container >>=<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
+      - run: rancher kubectl -n << parameters.rancher-namespace >> set image << parameters.rancher-workload-type >>/<< parameters.rancher-deployment >> << parameters.rancher-container >>=<< parameters.registry >>/<< parameters.final-image >>
       - run: rancher kubectl -n << parameters.rancher-namespace >> rollout status << parameters.rancher-workload-type >>/<< parameters.rancher-deployment >>
 

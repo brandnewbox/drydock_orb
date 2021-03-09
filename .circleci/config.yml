@@ -8,6 +8,6 @@ workflows:
     jobs:
       - orb-tools/publish:
           orb-path: src/orb.yml
-          orb-ref: brandnewbox/drydock@1.5.1
+          orb-ref: brandnewbox/drydock@1.5.2
           publish-token-variable: "$CIRCLECI_DEV_API_TOKEN"
           validate: true
