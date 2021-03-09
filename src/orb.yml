@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.5.4
+        drydock: brandnewbox/drydock@1.5.5
       workflows:
         devops_flow:
           parameters:
@@ -197,10 +197,10 @@ jobs:
             docker build -t \
             << parameters.builder-image >> \
             << parameters.dockerfile-path >>
-      - digitalocean/install
-      - digitalocean/initialize:
-          digitalocean-access-token: DO_BNB_REGISTRY_ACCESS_TOKEN
-      - run: doctl registry login
+      - run:
+        name: Log into DO registry
+        command: |
+          docker login -u $DO_BNB_REGISTRY_ACCESS_TOKEN -p $DO_BNB_REGISTRY_ACCESS_TOKEN << parameters.registry >>
       - run:
           name: Tag image with commit SHA tag
           command: |
