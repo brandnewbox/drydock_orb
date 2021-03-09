@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.5.6
+        drydock: brandnewbox/drydock@1.5.7
       workflows:
         devops_flow:
           parameters:
@@ -379,7 +379,7 @@ jobs:
           name: Build the final image on top of the builder image
           command: |
             s2i build . \
-            << parameters.builder-image >> \
+            << parameters.registry >>/<< parameters.builder-image >> \
             << parameters.final-image-name >>:latest  \
             --pull-policy never \
             << parameters.s2i-builder-environment-variables >>
