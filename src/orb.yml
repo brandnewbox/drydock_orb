@@ -198,9 +198,9 @@ jobs:
             << parameters.builder-image >> \
             << parameters.dockerfile-path >>
       - run:
-        name: Log into DO registry
-        command: |
-          docker login -u $DO_BNB_REGISTRY_ACCESS_TOKEN -p $DO_BNB_REGISTRY_ACCESS_TOKEN << parameters.registry >>
+          name: Log into DO registry
+          command: |
+            docker login -u $DO_BNB_REGISTRY_ACCESS_TOKEN -p $DO_BNB_REGISTRY_ACCESS_TOKEN << parameters.registry >>
       - run:
           name: Tag image with commit SHA tag
           command: |
