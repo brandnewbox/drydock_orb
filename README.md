@@ -12,7 +12,7 @@ We deploy our applications with secrets encrypted in Rails credentials. In order
 
 # Accessing Your Private Registry
 
-We are taking advantage of CircleCI's ability to use auth credentials in the image configuration](https://circleci.com/docs/2.0/private-images/) to authenticate with a private registry:
+We are taking advantage of [CircleCI's ability to use auth credentials in the image configuration](https://circleci.com/docs/2.0/private-images/) to authenticate with a private registry:
 
 >  If you’re in an environment that doesn’t have doctl or want to use an existing API token, you can simulate what doctl registry login does by using an API token string as the username and password when calling docker login. 
 
