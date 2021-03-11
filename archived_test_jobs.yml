@@ -1,0 +1,125 @@
+archived-test-jobs:
+  test-with-postgis:
+    parameters:
+      builder-image:
+        description: Name and tag of the builder image
+        type: string
+      registry:
+        description: Registry of the builder image
+        type: string
+        default: registry.digitalocean.com
+    docker:
+      - image: << parameters.registry >>/<< parameters.builder-image >>
+        auth:
+          username: $DO_BNB_REGISTRY_ACCESS_TOKEN
+          password: $DO_BNB_REGISTRY_ACCESS_TOKEN
+        environment:
+          RAILS_ENV: test
+          DATABASE_URL: postgis://circleci:password@localhost:5432/my_database
+      - image: mdillon/postgis:9.5
+        environment:
+          POSTGRES_USER: circleci
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: my_database
+    working_directory: ~/repo
+    steps:
+      - default-test-steps
+
+  test-with-postgres:
+    parameters:
+      builder-image:
+        description: Name and tag of the builder image
+        type: string
+      registry:
+        description: Registry of the builder image
+        type: string
+        default: registry.digitalocean.com
+    docker:
+      - image: << parameters.registry >>/<< parameters.builder-image >>
+        auth:
+          username: $DO_BNB_REGISTRY_ACCESS_TOKEN
+          password: $DO_BNB_REGISTRY_ACCESS_TOKEN
+        environment:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
+      - image: circleci/postgres:9.5-alpine
+        environment:
+          POSTGRES_USER: circleci
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: my_database
+    working_directory: ~/repo
+    steps:      
+      - default-test-steps
+
+  test-with-postgres-and-highcharts:
+    parameters:
+      bnb-ruby-tag:
+        description: BNB Ruby Image To Use
+        type: string
+      postgres-tag:
+        description: Postgres Tag To Use
+        type: string
+        default: "11-alpine"
+      highcharts-tag:
+        description: HighCharts Tag To Use
+        type: string
+        default: "latest"
+    docker:
+      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
+        environment:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
+          HIGHCHARTS_URL: http://localhost:8080
+      - image: circleci/postgres:<<parameters.postgres-tag>>
+        environment:
+          POSTGRES_USER: circleci
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: my_database
+      - image: brandnewbox/highcharts-export-node:<<parameters.highcharts-tag>>
+    working_directory: ~/repo
+    steps:
+      - default-test-steps
+
+  test-with-postgres-and-elasticsearch:
+    parameters:
+      bnb-ruby-tag:
+        description: BNB Ruby Image To Use
+        type: string
+      elasticsearch-tag:
+        description: ElasticSearch Tag To Use
+        type: string
+        default: "6.5.0"
+    docker:
+      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
+        environment:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
+          ELASTICSEARCH_URL: http://localhost:9200
+      - image: circleci/postgres:9.5-alpine
+        environment:
+          POSTGRES_USER: circleci
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: my_database
+      - image: elasticsearch:<<parameters.elasticsearch-tag>>
+    working_directory: ~/repo
+    steps:
+      - default-test-steps
+
+  test-with-mysql:
+    parameters:
+      bnb-ruby-tag:
+        description: BNB Ruby Image To Use
+        type: string
+    docker:
+      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
+        environment:
+          RAILS_ENV: test
+          DATABASE_URL: mysql2://root:password@127.0.0.1:3306/my_database
+      - image: circleci/mysql:5.7
+        environment:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: my_database
+    working_directory: ~/repo
+    steps:
+      - default-test-steps

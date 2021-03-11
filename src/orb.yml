@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.5.9
+        drydock: brandnewbox/drydock@1.6.0
       workflows:
         devops_flow:
           parameters:
@@ -41,8 +41,7 @@ examples:
                 builder-image-name: << pipeline.parameters.builder-image-name >>
                 builder-image-tag: << pipeline.parameters.builder-image-tag >>
                 context: DO_BNB_REGISTRY
-            - drydock/test-with-postgres:
-                builder-image: << pipeline.parameters.builder-image-name >>:<< pipeline.parameters.builder-image-tag >>
+            - test:
                 context: DO_BNB_REGISTRY
                 requires:
                   - drydock/build-and-push-builder
@@ -55,7 +54,7 @@ examples:
                   branches:
                     only: /^(main|staging)$/
                 requires:
-                  - drydock/test-with-postgres
+                  - test
             - hold:
                 type: approval
                 filters:
@@ -87,6 +86,24 @@ examples:
                     only: /^(main|staging)$/
                 requires:
                   - hold
+      jobs:
+        test:
+          docker:
+            - image: registry.digitalocean.com/<< pipeline.parameters.builder-image-name >>:<< pipeline.parameters.builder-image-tag >>
+              auth:
+                username: $PRIVATE_REGISTRY_USERNAME
+                password: $PRIVATE_REGISTRY_PASSWORD
+              environment:
+                RAILS_ENV: test
+                DATABASE_URL: mysql2://root:password@127.0.0.1:3306/my_database
+            - image: circleci/mysql:5.7
+              environment:
+                MYSQL_HOST: 127.0.0.1
+                MYSQL_ROOT_PASSWORD: password
+                MYSQL_DATABASE: my_database
+          working_directory: ~/repo
+          steps:
+            - drydock/default-test-steps
 
 commands:
   manage-gems:
@@ -172,14 +189,14 @@ commands:
       Log into a registry using context provided env vars
     parameters:
       registry:
-        description: Private registry
+        description: Private registry URL
         type: string
         default: registry.digitalocean.com
     steps:
       - run:
-          name: Log into DO registry
+          name: Log into private registry
           command: |
-            docker login -u $DO_BNB_REGISTRY_ACCESS_TOKEN -p $DO_BNB_REGISTRY_ACCESS_TOKEN << parameters.registry >>
+            docker login -u $PRIVATE_REGISTRY_USERNAME -p $PRIVATE_REGISTRY_PASSWORD << parameters.registry >>
 
 jobs:
   build-and-push-builder:
@@ -221,131 +238,6 @@ jobs:
           command: |
             docker push \
             << parameters.registry >>/<< parameters.builder-image >>
-
-  test-with-postgis:
-    parameters:
-      builder-image:
-        description: Name and tag of the builder image
-        type: string
-      registry:
-        description: Registry of the builder image
-        type: string
-        default: registry.digitalocean.com
-    docker:
-      - image: << parameters.registry >>/<< parameters.builder-image >>
-        auth:
-          username: $DO_BNB_REGISTRY_ACCESS_TOKEN
-          password: $DO_BNB_REGISTRY_ACCESS_TOKEN
-        environment:
-          RAILS_ENV: test
-          DATABASE_URL: postgis://circleci:password@localhost:5432/my_database
-      - image: mdillon/postgis:9.5
-        environment:
-          POSTGRES_USER: circleci
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: my_database
-    working_directory: ~/repo
-    steps:
-      - default-test-steps
-
-  test-with-postgres:
-    parameters:
-      builder-image:
-        description: Name and tag of the builder image
-        type: string
-      registry:
-        description: Registry of the builder image
-        type: string
-        default: registry.digitalocean.com
-    docker:
-      - image: << parameters.registry >>/<< parameters.builder-image >>
-        auth:
-          username: $DO_BNB_REGISTRY_ACCESS_TOKEN
-          password: $DO_BNB_REGISTRY_ACCESS_TOKEN
-        environment:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
-      - image: circleci/postgres:9.5-alpine
-        environment:
-          POSTGRES_USER: circleci
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: my_database
-    working_directory: ~/repo
-    steps:      
-      - default-test-steps
-
-  test-with-postgres-and-highcharts:
-    parameters:
-      bnb-ruby-tag:
-        description: BNB Ruby Image To Use
-        type: string
-      postgres-tag:
-        description: Postgres Tag To Use
-        type: string
-        default: "11-alpine"
-      highcharts-tag:
-        description: HighCharts Tag To Use
-        type: string
-        default: "latest"
-    docker:
-      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
-        environment:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
-          HIGHCHARTS_URL: http://localhost:8080
-      - image: circleci/postgres:<<parameters.postgres-tag>>
-        environment:
-          POSTGRES_USER: circleci
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: my_database
-      - image: brandnewbox/highcharts-export-node:<<parameters.highcharts-tag>>
-    working_directory: ~/repo
-    steps:
-      - default-test-steps
-
-  test-with-postgres-and-elasticsearch:
-    parameters:
-      bnb-ruby-tag:
-        description: BNB Ruby Image To Use
-        type: string
-      elasticsearch-tag:
-        description: ElasticSearch Tag To Use
-        type: string
-        default: "6.5.0"
-    docker:
-      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
-        environment:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://circleci:password@localhost:5432/my_database
-          ELASTICSEARCH_URL: http://localhost:9200
-      - image: circleci/postgres:9.5-alpine
-        environment:
-          POSTGRES_USER: circleci
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: my_database
-      - image: elasticsearch:<<parameters.elasticsearch-tag>>
-    working_directory: ~/repo
-    steps:
-      - default-test-steps
-
-  test-with-mysql:
-    parameters:
-      bnb-ruby-tag:
-        description: BNB Ruby Image To Use
-        type: string
-    docker:
-      - image: brandnewbox/bnb-ruby:<<parameters.bnb-ruby-tag>>
-        environment:
-          RAILS_ENV: test
-          DATABASE_URL: mysql2://root:password@127.0.0.1:3306/my_database
-      - image: circleci/mysql:5.7
-        environment:
-          MYSQL_HOST: 127.0.0.1
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: my_database
-    working_directory: ~/repo
-    steps:
-      - default-test-steps
 
   build-and-push-final:
     docker:
@@ -410,7 +302,7 @@ jobs:
           command: |
             docker push \
             << parameters.registry >>/<< parameters.final-image-name >>:latest
-  # Create/Update DigitalOcean Deployment
+
   create-deployment:
     docker:
       - image: circleci/python:3.8.0-buster
@@ -457,7 +349,7 @@ jobs:
       # Give rancher access to DO registry
       - digitalocean/install
       - digitalocean/initialize:
-          digitalocean-access-token: DO_BNB_REGISTRY_ACCESS_TOKEN
+          digitalocean-access-token: DIGITAL_OCEAN_ACCESS_TOKEN
       # This command outputs a YAML-formatted Kubernetes secret manifest that can 
       # be used to grant a Kubernetes cluster pull access to your private container registry.
       # By default, name of the secret is the registry name prefixed with “registry-”
