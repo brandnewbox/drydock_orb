@@ -26,7 +26,7 @@ This orb supports deploying built images into Digital Ocean kubernetes clusters.
 
 We used to include a bunch of jobs in this orb to perform tests. But it turned into `test-with-x` and `test-with-y` and `test-with-z-but-not-a` over time. So we decided to move all tests to a local level configuration and keep this orb focused on S2I builds and deploying to K8S.
 
-To help ease the transition, those jobs have been archived in `archived_test_jobs.yml` for reference.
+To help ease the transition, those jobs have been archived in [archived_test_jobs.yml](https://github.com/brandnewbox/drydock_orb/blob/master/archived_test_jobs.yml) for reference.
 
 # Updating?
 
