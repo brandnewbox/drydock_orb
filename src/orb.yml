@@ -38,8 +38,7 @@ examples:
           jobs:
             - drydock/build-and-push-builder:
                 dockerfile-path: ./devops
-                builder-image-name: << pipeline.parameters.builder-image-name >>
-                builder-image-tag: << pipeline.parameters.builder-image-tag >>
+                builder-image: << pipeline.parameters.builder-image-name >>:<< pipeline.parameters.builder-image-tag >>
                 context: DO_BNB_REGISTRY
             - test:
                 context: DO_BNB_REGISTRY
