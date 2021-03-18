@@ -14,27 +14,27 @@ examples:
       version: 2.1
       orbs:
         drydock: brandnewbox/drydock@1.6.0
+      parameters:
+        builder-image-name:
+          type: string
+          default: "brandnewbox/my-app-builder"
+        builder-image-tag:
+          type: string
+          default: $CIRCLE_SHA1
+        final-image-name:
+          type: string
+          default: "brandnewbox/my-app"
+        final-image-tag:
+          type: string
+          default: $CIRCLE_SHA1
+        rancher-context:
+          type: string
+          default: "c-abcde:p-vwxyz"
+        rancher-namespace:
+          type: string
+          default: "rails"
       workflows:
         devops_flow:
-          parameters:
-            builder-image-name:
-              type: string
-              default: "brandnewbox/my-app-builder"
-            builder-image-tag:
-              type: string
-              default: $CIRCLE_SHA1
-            final-image-name:
-              type: string
-              default: "brandnewbox/my-app"
-            final-image-tag:
-              type: string
-              default: $CIRCLE_SHA1
-            rancher-context:
-              type: string
-              default: "c-abcde:p-vwxyz"
-            rancher-namespace:
-              type: string
-              default: "rails"
           jobs:
             - drydock/build-and-push-builder:
                 dockerfile-path: ./devops
