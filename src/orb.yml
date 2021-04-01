@@ -356,7 +356,7 @@ jobs:
       - run: doctl registry kubernetes-manifest --namespace << parameters.rancher-namespace >> | rancher kubectl -n << parameters.rancher-namespace >> apply -f -
       - run: "rancher kubectl -n << parameters.rancher-namespace >> patch serviceaccount default -p '{\"imagePullSecrets\": [{\"name\": \"registry-brandnewbox\"}]}'"
       # Now update the secret
-      - run: rancher kubectl -n << parameters.rancher-namespace >> get secret rails-credentials -o json | jq --arg key "$(echo $<< parameters.credentials-key-env-var >> | base64)" '.data["rails-credentials-key"]=$key' | rancher kubectl -n << parameters.rancher-namespace >> apply -f -
+      - run: rancher kubectl -n << parameters.rancher-namespace >> get secret rails-credentials -o json | jq --arg key "$(echo -n $<< parameters.credentials-key-env-var >> | base64)" '.data["rails-credentials-key"]=$key' | rancher kubectl -n << parameters.rancher-namespace >> apply -f -
       # Now update the image in your deployment
       - run: rancher kubectl -n << parameters.rancher-namespace >> set image << parameters.rancher-workload-type >>/<< parameters.rancher-deployment >> << parameters.rancher-container >>=<< parameters.registry >>/<< parameters.final-image >>
       - run: rancher kubectl -n << parameters.rancher-namespace >> rollout status << parameters.rancher-workload-type >>/<< parameters.rancher-deployment >>
