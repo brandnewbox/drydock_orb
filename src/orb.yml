@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.6.0
+        drydock: brandnewbox/drydock@1.6.1
       parameters:
         builder-image-name:
           type: string
