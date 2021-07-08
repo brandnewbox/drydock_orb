@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.6.1
+        drydock: brandnewbox/drydock@1.7.0
       parameters:
         builder-image-name:
           type: string
@@ -36,6 +36,8 @@ examples:
       workflows:
         devops_flow:
           jobs:
+            - run-danger:
+                context: GITHUB
             - drydock/build-and-push-builder:
                 dockerfile-path: ./devops
                 builder-image: << pipeline.parameters.builder-image-name >>:<< pipeline.parameters.builder-image-tag >>
@@ -360,4 +362,18 @@ jobs:
       # Now update the image in your deployment
       - run: rancher kubectl -n << parameters.rancher-namespace >> set image << parameters.rancher-workload-type >>/<< parameters.rancher-deployment >> << parameters.rancher-container >>=<< parameters.registry >>/<< parameters.final-image >>
       - run: rancher kubectl -n << parameters.rancher-namespace >> rollout status << parameters.rancher-workload-type >>/<< parameters.rancher-deployment >>
-
+  
+  run-danger:
+    docker:
+      - image: cimg/ruby:2.7
+    steps:
+      - checkout
+      - run:
+          name: Remove Gemfile and lock file # The existing Gemfile/lock file will mess up running danger because of all the dependencies that we aren't installing
+          command: rm Gemfile Gemfile.lock
+      - run:
+          name: Install danger
+          command: gem install danger
+      - run:
+          name: Run danger
+          command: danger
