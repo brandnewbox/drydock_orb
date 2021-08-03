@@ -11,6 +11,7 @@ workflows:
           orb-name: brandnewbox/drydock
           publish-token-variable: CIRCLECI_DEV_API_TOKEN
           validate: true
+          checkout: true
           filters:
             branches:
               ignore: master
