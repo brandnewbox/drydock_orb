@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.7.0
+        drydock: brandnewbox/drydock@1.8.0
       parameters:
         builder-image-name:
           type: string
@@ -278,7 +278,13 @@ jobs:
       - run:
           name: Build the final image on top of the builder image
           command: |
-            s2i build --incremental . \
+            if [[-z "${WITHOUT_S2I_INCREMENTAL}"]]; then
+              S2I_PARAMETERS=""
+            else
+              S2I_PARAMETERS="--incremental"
+            fi
+
+            s2i build $S2I_PARAMETERS . \
             << parameters.registry >>/<< parameters.builder-image >> \
             << parameters.final-image-name >>:latest  \
             --pull-policy never \
