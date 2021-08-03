@@ -279,9 +279,9 @@ jobs:
           name: Build the final image on top of the builder image
           command: |
             if [ -z "${WITHOUT_S2I_INCREMENTAL:-}" ]; then
-              S2I_PARAMETERS=""
-            else
               S2I_PARAMETERS="--incremental"
+            else
+              S2I_PARAMETERS=""
             fi
 
             s2i build $S2I_PARAMETERS . \
