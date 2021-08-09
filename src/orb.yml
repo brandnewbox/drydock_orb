@@ -278,6 +278,8 @@ jobs:
       - run:
           name: Build the final image on top of the builder image
           command: |
+            # Can be read as `unless $WITHOUT_S2I_INCREMENTAL`. If $WITHOUT_S2I_INCREMENTAL is not
+            # defined then we run the first branch, if it is we run the `else` branch.
             if [ -z "${WITHOUT_S2I_INCREMENTAL:-}" ]; then
               S2I_PARAMETERS="--incremental"
             else
