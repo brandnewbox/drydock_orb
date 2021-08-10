@@ -1,13 +1,25 @@
 version: 2.1
 
 orbs:
-  orb-tools: circleci/orb-tools@2.0.0
+  orb-tools: circleci/orb-tools@10.0.4
 
 workflows:
   btd:
     jobs:
+      - orb-tools/publish-dev:
+          orb-path: src/orb.yml
+          orb-name: brandnewbox/drydock
+          publish-token-variable: CIRCLECI_DEV_API_TOKEN
+          validate: true
+          checkout: true
+          filters:
+            branches:
+              ignore: master
       - orb-tools/publish:
           orb-path: src/orb.yml
-          orb-ref: brandnewbox/drydock@1.7.0
-          publish-token-variable: "$CIRCLECI_DEV_API_TOKEN"
+          orb-ref: brandnewbox/drydock@1.8.0
+          publish-token-variable: CIRCLECI_DEV_API_TOKEN
           validate: true
+          filters:
+            branches:
+              only: master
