@@ -221,7 +221,7 @@ jobs:
       docker-version:
         description: The version of the docker engine
         type: string
-        default: ""
+        default: "" # Setting to blank so that we get the default CircleCI docker version (https://circleci.com/docs/2.0/building-docker-images/#docker-version)
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
