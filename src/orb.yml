@@ -218,9 +218,14 @@ jobs:
         description: Registry of the builder image
         type: string
         default: registry.digitalocean.com
+      docker-version:
+        description: The version of the docker engine
+        type: string
+        default:
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
+          version: << parameters.docker-version >>
       - checkout
       - run:
           name: Build the builder image
