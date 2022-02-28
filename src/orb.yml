@@ -221,7 +221,7 @@ jobs:
       docker-version:
         description: The version of the docker engine
         type: string
-        default:
+        default: ""
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
