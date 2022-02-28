@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@1.8.0
+        drydock: brandnewbox/drydock@1.8.1
       parameters:
         builder-image-name:
           type: string
@@ -218,9 +218,14 @@ jobs:
         description: Registry of the builder image
         type: string
         default: registry.digitalocean.com
+      docker-version:
+        description: The version of the docker engine
+        type: string
+        default: "" # Setting to blank so that we get the default CircleCI docker version (https://circleci.com/docs/2.0/building-docker-images/#docker-version)
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
+          version: << parameters.docker-version >>
       - checkout
       - run:
           name: Build the builder image
@@ -261,10 +266,14 @@ jobs:
         description: Customizable environment variables to pass to S2I during the final image build
         type: string
         default: -e RAILS_ENV=production -e DEVISE_SECRET_KEY=shipit_chokes_without_this -e DATABASE_URL=postgres://user:password@host:5432/database
+      docker-version:
+        description: The version of the docker engine
+        type: string
+        default: 19.03.13 # https://circleci.com/docs/2.0/building-docker-images/#docker-version
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
-          version: 19.03.13
+          version: << parameters.docker-version >>
       - checkout
       - login-to-private-registry
       - run:
