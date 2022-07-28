@@ -183,11 +183,11 @@ jobs:
         default: "" # Setting to blank so that we get the default CircleCI docker version (https://circleci.com/docs/2.0/building-docker-images/#docker-version)
       cache-assets:
         description: Whether or not to use circleCI cache on public/assets
-        type: string
+        type: boolean
         default: false
       cache-packs:
         description: Whether or not to use circleCI cache on public/packs
-        type: string
+        type: boolean
         default: false
       registry:
         description: Private registry URL
@@ -199,19 +199,19 @@ jobs:
           version: << parameters.docker-version >>
       - checkout
       - when:
-        condition: << parameters.cache-assets >>
-        steps:
-          - restore_cache:
-              name: Restore Compiled Assets
-              keys:
-                - v1-asset-cache-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+          condition: << parameters.cache-assets >>
+          steps:
+            - restore_cache:
+                name: Restore Compiled Assets
+                keys:
+                  - v1-asset-cache-{{ arch }}-{{ .Branch }}-{{ .Revision }}
       - when:
-        condition: << parameters.cache-packs >>
-        steps:
-          - restore_cache:
-              name: Restore Compiled Packs
-              keys:
-                - v1-pack-cache-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+          condition: << parameters.cache-packs >>
+          steps:
+            - restore_cache:
+                name: Restore Compiled Packs
+                keys:
+                  - v1-pack-cache-{{ arch }}-{{ .Branch }}-{{ .Revision }}
       - run:
           name: Build the builder image
           command: |
@@ -221,33 +221,33 @@ jobs:
             --file << parameters.dockerfile-path >> \
             .
       - when:
-        condition: << parameters.cache-assets >>
-        steps:
-          - run:
-              name: Copy Compiled Assets From Built Image
-              command: |
-                containerId=$(docker create << parameters.built-image >>); \
-                docker cp $containerId:/home/my_user/app/public/assets public/assets;
-                docker rm -v $containerId
-          - save_cache:
-              name: Save Compiled Assets
-              paths:
-                - public/assets
-              key: v1-asset-cache-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+          condition: << parameters.cache-assets >>
+          steps:
+            - run:
+                name: Copy Compiled Assets From Built Image
+                command: |
+                  containerId=$(docker create << parameters.built-image >>); \
+                  docker cp $containerId:/home/my_user/app/public/assets public/assets;
+                  docker rm -v $containerId
+            - save_cache:
+                name: Save Compiled Assets
+                paths:
+                  - public/assets
+                key: v1-asset-cache-{{ arch }}-{{ .Branch }}-{{ .Revision }}
       - when:
-        condition: << parameters.cache-packs >>
-        steps:
-          - run:
-              name: Copy Compiled Packs From Built Image
-              command: |
-                containerId=$(docker create << parameters.built-image >>); \
-                docker cp $containerId:/home/my_user/app/public/packs public/packs;
-                docker rm -v $containerId
-          - save_cache:
-              name: Save Compiled Packs
-              paths:
-                - public/packs
-              key: v1-pack-cache-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+          condition: << parameters.cache-packs >>
+          steps:
+            - run:
+                name: Copy Compiled Packs From Built Image
+                command: |
+                  containerId=$(docker create << parameters.built-image >>); \
+                  docker cp $containerId:/home/my_user/app/public/packs public/packs;
+                  docker rm -v $containerId
+            - save_cache:
+                name: Save Compiled Packs
+                paths:
+                  - public/packs
+                key: v1-pack-cache-{{ arch }}-{{ .Branch }}-{{ .Revision }}
       - run:
           name: Log into private registry
           command: |
