@@ -101,6 +101,14 @@ examples:
                   - test
       jobs:
         test:
+          parameters:
+            image:
+              description: The image to test
+              type: string
+            credentials-key-env-var:
+              default: RAILS_TEST_KEY
+              description: Envrionment Variable to use for the Rails Credentials Key for the Test Environment.
+              type: string
           docker:
             - image: << parameters.image >>
               auth:
@@ -114,14 +122,6 @@ examples:
                 POSTGRES_USER: circleci
                 POSTGRES_PASSWORD: password
                 POSTGRES_DB: my_database
-          parameters:
-            image:
-              description: The image to test
-              type: string
-          credentials-key-env-var:
-            default: RAILS_TEST_KEY
-            description: Envrionment Variable to use for the Rails Credentials Key for the Test Environment.
-            type: string
           working_directory: /home/my_user/app
           steps:
             - drydock/default-test-steps
