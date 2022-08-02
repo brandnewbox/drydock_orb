@@ -105,10 +105,6 @@ examples:
             image:
               description: The image to test
               type: string
-            credentials-key-env-var:
-              default: RAILS_TEST_KEY
-              description: Envrionment Variable to use for the Rails Credentials Key for the Test Environment.
-              type: string
           docker:
             - image: << parameters.image >>
               auth:
@@ -124,12 +120,18 @@ examples:
                 POSTGRES_DB: my_database
           working_directory: /home/my_user/app
           steps:
-            - drydock/default-test-steps
+            - drydock/default-test-steps:
+                credentials-key-env-var: "MY_CUSTOM_KEY"
 
 commands:
   default-test-steps:
     description: |
       Default Process for Running Tests
+    parameters:
+      credentials-key-env-var:
+        default: RAILS_TEST_KEY
+        description: Envrionment Variable to use for the Rails Credentials Key for the Test Environment.
+        type: string
     steps:
       - run: 
           name: Install Test Env Gems
