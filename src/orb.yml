@@ -129,21 +129,21 @@ commands:
     steps:
       - run: 
           name: Install Test Env Gems
-          command: bundle install --with=test
+          command: RAILS_MASTER_KEY=$<< parameters.credentials-key-env-var >> bundle install --with=test
           # We have to specify --with=test because the builder image is configured without test and dev
       - run: 
           name: Create Database
-          command: bundle exec rake db:create
+          command: RAILS_MASTER_KEY=$<< parameters.credentials-key-env-var >> bundle exec rake db:create
       - run: 
           name: Migrate Database
-          command: bundle exec rake db:migrate
+          command: RAILS_MASTER_KEY=$<< parameters.credentials-key-env-var >> bundle exec rake db:migrate
       - run:
           name: Run Tests
           command: |
             mkdir /tmp/test-results
             TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | \
               circleci tests split --split-by=timings)"
-            bundle exec rspec \
+            RAILS_MASTER_KEY=$<< parameters.credentials-key-env-var >> bundle exec rspec \
               --format progress \
               --format RspecJunitFormatter \
               --out /tmp/test-results/rspec.xml \
