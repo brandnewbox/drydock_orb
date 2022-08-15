@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   digitalocean: digitalocean/cli@0.1.1
-  rancher2_cli: brandnewbox/rancher2_cli@1.1.1
+  rancher2_cli: brandnewbox/rancher2_cli@1.1.2
   kubernetes: circleci/kubernetes@0.11.0
 
 description: |
@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@2.0.2
+        drydock: brandnewbox/drydock@2.0.3
       parameters:
         registry:
           type: string
