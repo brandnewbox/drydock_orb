@@ -14,7 +14,7 @@ workflows:
           checkout: true
           filters:
             branches:
-              ignore: master
+              ignore: v1.9.1
       - orb-tools/publish:
           orb-path: src/orb.yml
           orb-ref: brandnewbox/drydock@1.9.1
@@ -22,4 +22,4 @@ workflows:
           validate: true
           filters:
             branches:
-              only: master
+              only: v1.9.1
