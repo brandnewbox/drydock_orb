@@ -16,7 +16,7 @@ By default, our test suite uses `--format RspecJunitFormatter` to make things lo
 
 We deploy our applications with secrets encrypted in Rails credentials. In order to unlock those credentials, make sure you set the `RAILS_CREDENTIALS_KEY` in your CircleCI project settings to the appropriate rails key for your deployment.
 
-Everything that follows should be added through the `DO_BNB_REGISTRY` context. Check out these notes to see how we got here.
+Everything that follows should already be added through the `DO_BNB_REGISTRY` context. Check out these notes to see how we got here.
 
 # Accessing Your Private Registry
 
