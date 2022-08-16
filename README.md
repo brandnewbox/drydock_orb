@@ -22,7 +22,8 @@ Everything that follows should be added through the `DO_BNB_REGISTRY` context. C
 
 We are taking advantage of [CircleCI's ability to use auth credentials in the image configuration](https://circleci.com/docs/2.0/private-images/) to authenticate with a private registry:
 
->  If you’re in an environment that doesn’t have doctl or want to use an existing API token, you can simulate what doctl registry login does by using an API token string as the username and password when calling docker login. 
+>  If you’re in an environment that doesn’t have doctl or want to use an existing API token, you can simulate what doctl registry login does by using an API token string as the username and password when calling docker login.
+
 To do this, we use two environment variables: `PRIVATE_REGISTRY_USERNAME` and `PRIVATE_REGISTRY_PASSWORD`. We recommend keeping these secure in a CircleCI context and passing that context to the `build-and-push-builder` and `build-and-push-final` jobs.
 
 # Deploying to Digital Ocean Kubernetes Cluster
