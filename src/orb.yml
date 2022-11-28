@@ -20,16 +20,16 @@ examples:
           default: registry.digitalocean.com
         builder-image:
           type: string
-          default: brandnewbox/sisep-builder
+          default: brandnewbox/PROJECT_NAME-builder
         final-image:
           type: string
-          default: brandnewbox/sisep
+          default: brandnewbox/PROJECT_NAME
         rancher-context:
           type: string
-          default: 'c-8w4t6:p-7nh7g'
+          default: 'c-1a2b3:p-4cd5e'
         rancher-namespace:
           type: string
-          default: sisep
+          default: PROJECT_NAME
       workflows:
         devops_flow:
           jobs:
