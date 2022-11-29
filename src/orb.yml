@@ -20,16 +20,16 @@ examples:
           default: registry.digitalocean.com
         builder-image:
           type: string
-          default: brandnewbox/kpis-builder
+          default: brandnewbox/PROJECT_NAME-builder
         final-image:
           type: string
-          default: brandnewbox/kpis
+          default: brandnewbox/PROJECT_NAME
         rancher-context:
           type: string
-          default: 'c-tmnrk:p-l87zj'
+          default: 'c-1a2b3:p-4cd5e'
         rancher-namespace:
           type: string
-          default: kpis
+          default: PROJECT_NAME
       workflows:
         devops_flow:
           jobs:
@@ -40,12 +40,10 @@ examples:
                 built-image: << pipeline.parameters.registry >>/<< pipeline.parameters.builder-image >>:${CIRCLE_SHA1}
                 build-target: builder
                 cache-assets: true
+                cache-packs: false
+                docker-version: "20.10.7"
                 build-args: >-
-                  --build-arg RUBY_VERSION=${RUBY_VERSION}
-                  --build-arg PG_MAJOR=${PG_MAJOR}
-                  --build-arg NODE_MAJOR=${NODE_MAJOR}
-                  --build-arg YARN_VERSION=${YARN_VERSION}
-                  --build-arg RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+                  --build-arg RAILS_MASTER_KEY=${RAILS_PRODUCTION_KEY}
                 context: DO_BNB_REGISTRY
             - test:
                 image: << pipeline.parameters.registry >>/<< pipeline.parameters.builder-image >>:${CIRCLE_SHA1}
@@ -57,12 +55,10 @@ examples:
                 built-image: << pipeline.parameters.registry >>/<< pipeline.parameters.final-image >>:${CIRCLE_SHA1}
                 build-target: production
                 cache-assets: true
+                cache-packs: false
+                docker-version: "20.10.7"
                 build-args: >-
-                  --build-arg RUBY_VERSION=${RUBY_VERSION}
-                  --build-arg PG_MAJOR=${PG_MAJOR}
-                  --build-arg NODE_MAJOR=${NODE_MAJOR}
-                  --build-arg YARN_VERSION=${YARN_VERSION}
-                  --build-arg RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+                  --build-arg RAILS_MASTER_KEY=${RAILS_PRODUCTION_KEY}
                 context: DO_BNB_REGISTRY
                 filters:
                   branches:
@@ -76,7 +72,7 @@ examples:
                 rancher-namespace: << pipeline.parameters.rancher-namespace >>
                 rancher-context: << pipeline.parameters.rancher-context >>
                 image: << pipeline.parameters.registry >>/<< pipeline.parameters.final-image >>:${CIRCLE_SHA1}
-                credentials-key-env-var: RAILS_MASTER_KEY
+                credentials-key-env-var: RAILS_PRODUCTION_KEY
                 context: DO_BNB_REGISTRY
                 filters:
                   branches:
@@ -91,7 +87,7 @@ examples:
                 rancher-namespace: << pipeline.parameters.rancher-namespace >>
                 rancher-context: << pipeline.parameters.rancher-context >>
                 image: << pipeline.parameters.registry >>/<< pipeline.parameters.final-image >>:${CIRCLE_SHA1}
-                credentials-key-env-var: RAILS_MASTER_KEY
+                credentials-key-env-var: RAILS_PRODUCTION_KEY
                 context: DO_BNB_REGISTRY
                 filters:
                   branches:
@@ -120,8 +116,12 @@ examples:
                 POSTGRES_DB: my_database
           working_directory: /home/my_user/app
           steps:
+            - run: 
+                name: Install Test Env Gems
+                command: RAILS_MASTER_KEY=${RAILS_PRODUCTION_KEY} bundle install --with=test
+                # We have to specify --with=test because the builder image is configured without test and dev
             - drydock/default-test-steps:
-                credentials-key-env-var: "MY_CUSTOM_KEY"
+                credentials-key-env-var: "RAILS_PRODUCTION_KEY"
 
 commands:
   default-test-steps:
