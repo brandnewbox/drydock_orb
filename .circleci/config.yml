@@ -17,7 +17,7 @@ workflows:
               ignore: master
       - orb-tools/publish:
           orb-path: src/orb.yml
-          orb-ref: brandnewbox/drydock@2.0.3
+          orb-ref: brandnewbox/drydock@2.0.4
           publish-token-variable: CIRCLECI_DEV_API_TOKEN
           validate: true
           filters:
