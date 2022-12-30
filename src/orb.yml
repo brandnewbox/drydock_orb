@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@2.0.3
+        drydock: brandnewbox/drydock@2.0.4
       parameters:
         registry:
           type: string
@@ -30,6 +30,9 @@ examples:
         rancher-namespace:
           type: string
           default: PROJECT_NAME
+        working-directory:
+          type: string
+          default: /home/bnb/app
       workflows:
         devops_flow:
           jobs:
@@ -42,15 +45,17 @@ examples:
                 cache-assets: true
                 cache-packs: false
                 docker-version: "20.10.7"
+                working-directory: << pipeline.parameters.working-directory >>
                 build-args: >-
                   --build-arg RAILS_MASTER_KEY=${RAILS_PRODUCTION_KEY}
                 context: DO_BNB_REGISTRY
             - test:
                 image: << pipeline.parameters.registry >>/<< pipeline.parameters.builder-image >>:${CIRCLE_SHA1}
                 context: DO_BNB_REGISTRY
+                working-directory: << pipeline.parameters.working-directory >>
                 requires:
                   - build-and-push-builder
-            - build-and-push:
+            - drydock/build-and-push:
                 name: build-and-push-production
                 built-image: << pipeline.parameters.registry >>/<< pipeline.parameters.final-image >>:${CIRCLE_SHA1}
                 build-target: production
@@ -59,6 +64,7 @@ examples:
                 docker-version: "20.10.7"
                 build-args: >-
                   --build-arg RAILS_MASTER_KEY=${RAILS_PRODUCTION_KEY}
+                working-directory: << pipeline.parameters.working-directory >>
                 context: DO_BNB_REGISTRY
                 filters:
                   branches:
@@ -114,7 +120,7 @@ examples:
                 POSTGRES_USER: circleci
                 POSTGRES_PASSWORD: password
                 POSTGRES_DB: my_database
-          working_directory: /home/my_user/app
+          working_directory: << pipeline.parameters.working-directory >>
           steps:
             - run: 
                 name: Install Test Env Gems
@@ -199,6 +205,10 @@ jobs:
         description: Private registry URL
         type: string
         default: registry.digitalocean.com
+      working-directory:
+        description: Where inside the container the files are stored
+        type: string
+        default: /home/bnb/app
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
@@ -233,7 +243,7 @@ jobs:
                 name: Copy Compiled Assets From Built Image
                 command: |
                   containerId=$(docker create << parameters.built-image >>); \
-                  docker cp $containerId:/home/my_user/app/public/assets public/assets;
+                  docker cp $containerId:<<parameters.working-directory>>/public/assets public/assets;
                   docker rm -v $containerId
             - save_cache:
                 name: Save Compiled Assets
@@ -247,7 +257,7 @@ jobs:
                 name: Copy Compiled Packs From Built Image
                 command: |
                   containerId=$(docker create << parameters.built-image >>); \
-                  docker cp $containerId:/home/my_user/app/public/packs public/packs;
+                  docker cp $containerId:<<parameters.working-directory>>/public/packs public/packs;
                   docker rm -v $containerId
             - save_cache:
                 name: Save Compiled Packs
