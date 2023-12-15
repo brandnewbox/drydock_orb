@@ -123,7 +123,7 @@ commands:
       - run:
           name: Install Gem Dependencies
           command: |
-            gem install bundler
+            gem install bundler -v '2.4.22'
             bundle install --jobs=4 --retry=3 --path vendor/bundle
       - save_cache:
           name: Save Gem Cache
