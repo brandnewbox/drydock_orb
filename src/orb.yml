@@ -44,7 +44,7 @@ examples:
                 build-target: builder
                 cache-assets: true
                 cache-packs: false
-                docker-version: "20.10.7"
+                docker-version: default
                 working-directory: << pipeline.parameters.working-directory >>
                 build-args: >-
                   --build-arg RAILS_MASTER_KEY=${RAILS_PRODUCTION_KEY}
@@ -61,7 +61,7 @@ examples:
                 build-target: production
                 cache-assets: true
                 cache-packs: false
-                docker-version: "20.10.7"
+                docker-version: default
                 build-args: >-
                   --build-arg RAILS_MASTER_KEY=${RAILS_PRODUCTION_KEY}
                 working-directory: << pipeline.parameters.working-directory >>
