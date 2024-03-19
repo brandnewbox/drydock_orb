@@ -173,7 +173,7 @@ jobs:
       Use the application's custom dockerfile to build an image to a given target and then
       push to a private registry.
     docker:
-      - image: docker:17.09.0-ce
+      - image: cimg/base:2021.04
     parameters:
       dockerfile-path:
         description: Path to the directory containing a custom Dockerfile that should be used to build this project instead of just pulling the base image
