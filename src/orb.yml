@@ -308,6 +308,10 @@ jobs:
         default: RAILS_CREDENTIALS_KEY
         description: Envrionment Variable to use for the Rails Credentials Key.
         type: string
+      service-account:
+        default: default
+        description: The service account to add the image pull secrets
+        type: string
     steps:
       - rancher2_cli/install
       - rancher2_cli/initialize:
@@ -325,7 +329,7 @@ jobs:
       # By default, name of the secret is the registry name prefixed with “registry-”
       # https://www.digitalocean.com/docs/apis-clis/doctl/reference/registry/kubernetes-manifest/
       - run: doctl registry kubernetes-manifest --namespace << parameters.rancher-namespace >> | rancher kubectl -n << parameters.rancher-namespace >> apply -f -
-      - run: "rancher kubectl -n << parameters.rancher-namespace >> patch serviceaccount default -p '{\"imagePullSecrets\": [{\"name\": \"registry-brandnewbox\"}]}'"
+      - run: "rancher kubectl -n << parameters.rancher-namespace >> patch serviceaccount << parameters.service-account >> -p '{\"imagePullSecrets\": [{\"name\": \"registry-brandnewbox\"}]}'"
       # Now update the secret
       - when:
           condition: << parameters.should-update-credentials >>
