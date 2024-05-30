@@ -220,16 +220,16 @@ jobs:
             - restore_cache:
                 name: Restore Compiled Assets
                 keys:
-                  - v1-asset-cache-assets-{{ .Branch }}
-                  - v1-asset-cache-assets
+                  - v1-asset-cache-{{ .Branch }}
+                  - v1-asset-cache
       - when:
           condition: << parameters.cache-packs >>
           steps:
             - restore_cache:
                 name: Restore Compiled Packs
                 keys:
-                  - v1-pack-cache-packs-{{ .Branch }}
-                  - v1-pack-cache-packs
+                  - v1-pack-cache-{{ .Branch }}
+                  - v1-pack-cache
       - run:
           name: Build the builder image
           command: |
