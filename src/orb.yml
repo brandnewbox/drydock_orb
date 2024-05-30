@@ -220,14 +220,16 @@ jobs:
             - restore_cache:
                 name: Restore Compiled Assets
                 keys:
-                  - v1-asset-cache-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                  - v1-asset-cache-assets-{{ .Branch }}
+                  - v1-asset-cache-assets
       - when:
           condition: << parameters.cache-packs >>
           steps:
             - restore_cache:
                 name: Restore Compiled Packs
                 keys:
-                  - v1-pack-cache-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                  - v1-pack-cache-packs-{{ .Branch }}
+                  - v1-pack-cache-packs
       - run:
           name: Build the builder image
           command: |
@@ -249,7 +251,7 @@ jobs:
                 name: Save Compiled Assets
                 paths:
                   - public/assets
-                key: v1-asset-cache-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                key: v1-asset-cache-{{ .Branch }}-{{ .Revision }}
       - when:
           condition: << parameters.cache-packs >>
           steps:
@@ -263,7 +265,7 @@ jobs:
                 name: Save Compiled Packs
                 paths:
                   - public/packs
-                key: v1-pack-cache-{{ arch }}-{{ .Branch }}-{{ .Revision }}
+                key: v1-pack-cache-{{ .Branch }}-{{ .Revision }}
       - run:
           name: Log into private registry
           command: |
