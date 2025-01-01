@@ -382,9 +382,9 @@ jobs:
       - checkout
       - run:
         name: Create release and notify Sentry of deploy
-          command: |
-            export SENTRY_RELEASE=$(sentry-cli releases propose-version)
-            sentry-cli releases new -p << parameters.sentry-project >> $SENTRY_RELEASE
-            sentry-cli releases set-commits $SENTRY_RELEASE --auto
-            sentry-cli releases finalize $SENTRY_RELEASE
-            sentry-cli deploys new -e << parameters.sentry-environment >>
+        command: |
+          export SENTRY_RELEASE=$(sentry-cli releases propose-version)
+          sentry-cli releases new -p << parameters.sentry-project >> $SENTRY_RELEASE
+          sentry-cli releases set-commits $SENTRY_RELEASE --auto
+          sentry-cli releases finalize $SENTRY_RELEASE
+          sentry-cli deploys new -e << parameters.sentry-environment >>
