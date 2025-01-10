@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@2.2.1
+        drydock: brandnewbox/drydock@2.2.2
       parameters:
         registry:
           type: string
