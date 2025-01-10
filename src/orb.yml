@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        drydock: brandnewbox/drydock@2.2.1
+        drydock: brandnewbox/drydock@2.2.2
       parameters:
         registry:
           type: string
@@ -101,6 +101,16 @@ examples:
                 requires:
                   - build-and-push-production
                   - test
+            - drydock/notify-sentry-deploy:
+                sentry-project: PROJECT_NAME
+                sentry-environment: production
+                context: SENTRY_RELEASE_CREDENTIALS
+                filters:
+                  branches:
+                    only: /^(main)$/
+                requires:
+                  - puma-deployment
+                  - sidekiq-deployment
       jobs:
         test:
           parameters:
@@ -355,3 +365,26 @@ jobs:
       - run:
           name: Run danger
           command: danger
+
+  notify-sentry-deploy:
+    description: Notifies Sentry of a new deploy
+    docker:
+      - image: getsentry/sentry-cli
+    parameters: 
+      sentry-project:
+        description: The name of the project in Sentry
+        type: string
+      sentry-environment:
+        description: The environment in Sentry
+        type: string
+        default: production
+    steps:
+      - checkout
+      - run:
+          name: Create release and notify Sentry of deploy
+          command: |
+            export SENTRY_RELEASE=$(sentry-cli releases propose-version)
+            sentry-cli releases new -p << parameters.sentry-project >> $SENTRY_RELEASE
+            sentry-cli releases set-commits $SENTRY_RELEASE --auto
+            sentry-cli releases finalize $SENTRY_RELEASE
+            sentry-cli deploys new -e << parameters.sentry-environment >>
