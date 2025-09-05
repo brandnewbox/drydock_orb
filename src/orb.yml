@@ -287,7 +287,7 @@ jobs:
 
   create-deployment:
     docker:
-      - image: circleci/python:3.8.0-buster
+      - image: cimg/python:3.8.0
     parameters:
       rancher-context:
         description: Rancher context
