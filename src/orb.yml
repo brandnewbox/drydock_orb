@@ -175,6 +175,38 @@ commands:
       - store_artifacts:
           path: /tmp/test-results
           destination: test-
+  default-test-steps-parallel:
+    description: Default Process for Running Tests in Parallel
+    parameters:
+      parallel-processes:
+        default: 8
+        description: The number of parallel processes to run
+        type: integer
+    steps:
+      - run: 
+          name: Install Test Env Gems
+          command: bundle install --with=test
+          # We have to specify --with=test because the builder image is configured without test and dev
+      - run: 
+          name: Create and load schema into database
+          command: bin/rails parallel:setup[<< parameters.parallel-processes >>]
+      # Restore the most recent combined runtime log (if any) to seed grouping
+      - restore_cache:
+          keys:
+            # "rolling" prefix so CircleCI returns the most recent matching cache
+            - v1-runtime-cache-all-{{ .Branch }}-
+            - v1-runtime-cache-all-
+      - run:
+          name: Run tests
+          command: |
+            bundle exec parallel_rspec \
+            -n << parameters.parallel-processes >> \
+            --runtime-log tmp/parallel_runtime_test.log \
+            --verbose-rerun-command
+      - save_cache:
+          key: v1-runtime-cache-all-{{ .Branch }}-{{ epoch }}
+          paths:
+            - tmp/parallel_runtime_test.log
 
 jobs:
   build-and-push:
