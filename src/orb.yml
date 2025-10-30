@@ -1,7 +1,6 @@
 version: 2.1
 
 orbs:
-  digitalocean: digitalocean/cli@0.1.1
   rancher2_cli: brandnewbox/rancher2_cli@1.1.2
   kubernetes: circleci/kubernetes@0.11.0
 
@@ -332,15 +331,30 @@ jobs:
           rancher-context: << parameters.rancher-context >>
       # Gotta have kubectl for any `rancher kubectl` commands
       - kubernetes/install-kubectl
-      # Give rancher access to DO registry
-      - digitalocean/install
-      - digitalocean/initialize:
-          digitalocean-access-token: DIGITAL_OCEAN_ACCESS_TOKEN
-      # This command outputs a YAML-formatted Kubernetes secret manifest that can 
-      # be used to grant a Kubernetes cluster pull access to your private container registry.
-      # By default, name of the secret is the registry name prefixed with “registry-”
-      # https://www.digitalocean.com/docs/apis-clis/doctl/reference/registry/kubernetes-manifest/
-      - run: doctl registry kubernetes-manifest --namespace << parameters.rancher-namespace >> | rancher kubectl -n << parameters.rancher-namespace >> apply -f -
+      # Give rancher access to DO registry using API
+      - run:
+          name: Create Docker registry secret for DigitalOcean registry
+          command: |
+            # Get Docker credentials from DigitalOcean API
+            DOCKER_CONFIG=$(curl -X GET \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer ${DIGITAL_OCEAN_ACCESS_TOKEN}" \
+              "https://api.digitalocean.com/v2/registry/docker-credentials?read_write=false")
+
+            # Extract the base64-encoded Docker config
+            DOCKER_CONFIG_BASE64=$(echo "$DOCKER_CONFIG" | base64 -w 0)
+
+            # Create Kubernetes secret manifest
+            cat <<EOF | rancher kubectl -n << parameters.rancher-namespace >> apply -f -
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: registry-brandnewbox
+              namespace: << parameters.rancher-namespace >>
+            type: kubernetes.io/dockerconfigjson
+            data:
+              .dockerconfigjson: ${DOCKER_CONFIG_BASE64}
+            EOF
       - run: "rancher kubectl -n << parameters.rancher-namespace >> patch serviceaccount << parameters.service-account >> -p '{\"imagePullSecrets\": [{\"name\": \"registry-brandnewbox\"}]}'"
       # Now update the secret
       - when:
