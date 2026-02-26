@@ -285,8 +285,9 @@ jobs:
             - run:
                 name: Copy Compiled Assets From Built Image
                 command: |
-                  containerId=$(docker create << parameters.built-image >>); \
-                  docker cp $containerId:<<parameters.working-directory>>/public/assets public/assets;
+                  rm -rf public/assets
+                  containerId=$(docker create << parameters.built-image >>)
+                  docker cp $containerId:<<parameters.working-directory>>/public/assets public/assets
                   docker rm -v $containerId
             - save_cache:
                 name: Save Compiled Assets
@@ -299,8 +300,9 @@ jobs:
             - run:
                 name: Copy Compiled Packs From Built Image
                 command: |
-                  containerId=$(docker create << parameters.built-image >>); \
-                  docker cp $containerId:<<parameters.working-directory>>/public/packs public/packs;
+                  rm -rf public/packs
+                  containerId=$(docker create << parameters.built-image >>)
+                  docker cp $containerId:<<parameters.working-directory>>/public/packs public/packs
                   docker rm -v $containerId
             - save_cache:
                 name: Save Compiled Packs
