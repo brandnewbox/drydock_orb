@@ -289,6 +289,7 @@ jobs:
                   containerId=$(docker create << parameters.built-image >>)
                   docker cp $containerId:<<parameters.working-directory>>/public/assets public/assets
                   docker rm -v $containerId
+                  rm -rf public/assets/assets
             - save_cache:
                 name: Save Compiled Assets
                 paths:
@@ -304,6 +305,7 @@ jobs:
                   containerId=$(docker create << parameters.built-image >>)
                   docker cp $containerId:<<parameters.working-directory>>/public/packs public/packs
                   docker rm -v $containerId
+                  rm -rf public/packs/packs
             - save_cache:
                 name: Save Compiled Packs
                 paths:
