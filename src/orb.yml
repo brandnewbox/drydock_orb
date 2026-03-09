@@ -261,16 +261,16 @@ jobs:
             - restore_cache:
                 name: Restore Compiled Assets
                 keys:
-                  - v1-asset-cache-{{ .Branch }}
-                  - v1-asset-cache
+                  - v2-asset-cache-{{ .Branch }}
+                  - v2-asset-cache
       - when:
           condition: << parameters.cache-packs >>
           steps:
             - restore_cache:
                 name: Restore Compiled Packs
                 keys:
-                  - v1-pack-cache-{{ .Branch }}
-                  - v1-pack-cache
+                  - v2-pack-cache-{{ .Branch }}
+                  - v2-pack-cache
       - run:
           name: Build the builder image
           command: |
@@ -285,28 +285,32 @@ jobs:
             - run:
                 name: Copy Compiled Assets From Built Image
                 command: |
-                  containerId=$(docker create << parameters.built-image >>); \
-                  docker cp $containerId:<<parameters.working-directory>>/public/assets public/assets;
+                  rm -rf public/assets
+                  containerId=$(docker create << parameters.built-image >>)
+                  docker cp $containerId:<<parameters.working-directory>>/public/assets public/assets
                   docker rm -v $containerId
+                  rm -rf public/assets/assets
             - save_cache:
                 name: Save Compiled Assets
                 paths:
                   - public/assets
-                key: v1-asset-cache-{{ .Branch }}-{{ .Revision }}
+                key: v2-asset-cache-{{ .Branch }}-{{ .Revision }}
       - when:
           condition: << parameters.cache-packs >>
           steps:
             - run:
                 name: Copy Compiled Packs From Built Image
                 command: |
-                  containerId=$(docker create << parameters.built-image >>); \
-                  docker cp $containerId:<<parameters.working-directory>>/public/packs public/packs;
+                  rm -rf public/packs
+                  containerId=$(docker create << parameters.built-image >>)
+                  docker cp $containerId:<<parameters.working-directory>>/public/packs public/packs
                   docker rm -v $containerId
+                  rm -rf public/packs/packs
             - save_cache:
                 name: Save Compiled Packs
                 paths:
                   - public/packs
-                key: v1-pack-cache-{{ .Branch }}-{{ .Revision }}
+                key: v2-pack-cache-{{ .Branch }}-{{ .Revision }}
       - run:
           name: Log into private registry
           command: |
