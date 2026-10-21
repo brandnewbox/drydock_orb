@@ -30,6 +30,59 @@ To do this, we use two environment variables: `PRIVATE_REGISTRY_USERNAME` and `P
 
 This orb supports deploying built images into Digital Ocean kubernetes clusters. In order to take advantage of this, your private registry must also be on Digital Ocean. You will also need an environment variable of `DIGITAL_OCEAN_ACCESS_TOKEN`. We recommend keeping this secure in a CircleCI context and passing that context to the `create-deployment` job.
 
+# Running Migrations Before Deployments
+
+Use `drydock/run-migrations` to run migrations once before rolling out your deployments. It creates a one-off Kubernetes Job named `rails-migrate-<sha7>` using the new image and the template deployment's pod spec (by default, `rails-puma-deployment`). It copies the first container's `env`, `envFrom`, and `resources`, along with the pod's `serviceAccountName` and `imagePullSecrets`. If migrations fail, the CircleCI job fails and the deployments don't run.
+
+Add the following jobs to your production workflow, using the same pipeline parameters as your existing deployments and `brandnewbox/drydock@2.3.0` or later. Keep your existing `build-and-push-production` and `test` jobs, and apply the same production branch filters to all three jobs below.
+
+```yaml
+workflows:
+  devops_flow:
+    jobs:
+      - drydock/run-migrations:
+          name: migrate
+          rancher-context: << pipeline.parameters.rancher-context >>
+          rancher-namespace: << pipeline.parameters.rancher-namespace >>
+          image: << pipeline.parameters.registry >>/<< pipeline.parameters.final-image >>:${CIRCLE_SHA1}
+          credentials-key-env-var: RAILS_PRODUCTION_KEY
+          context: DO_BNB_REGISTRY
+          serial-group: << pipeline.project.slug >>/production-migrate
+          requires: [build-and-push-production, test]
+      - drydock/create-deployment:
+          name: puma-deployment
+          rancher-deployment: rails-puma-deployment
+          rancher-container: rails-puma-container
+          rancher-context: << pipeline.parameters.rancher-context >>
+          rancher-namespace: << pipeline.parameters.rancher-namespace >>
+          image: << pipeline.parameters.registry >>/<< pipeline.parameters.final-image >>:${CIRCLE_SHA1}
+          should-update-credentials: false
+          context: DO_BNB_REGISTRY
+          requires: [migrate]
+      - drydock/create-deployment:
+          name: sidekiq-deployment
+          rancher-deployment: rails-sidekiq-deployment
+          rancher-container: rails-sidekiq-container
+          rancher-context: << pipeline.parameters.rancher-context >>
+          rancher-namespace: << pipeline.parameters.rancher-namespace >>
+          image: << pipeline.parameters.registry >>/<< pipeline.parameters.final-image >>:${CIRCLE_SHA1}
+          should-update-credentials: false
+          context: DO_BNB_REGISTRY
+          requires: [migrate]
+```
+
+Set `serial-group` where you invoke the job in your workflow. Overlapping pipelines take turns in the same group, so two migration runs never overlap. The orb can't build this in. Both jobs use the shared `setup-rancher-namespace` command to prepare registry access and credentials; the deployments set `should-update-credentials: false` because the migration job already refreshed the credentials.
+
+The default `migrate-command` is `bundle exec rails db:migrate`, run through `/bin/sh -c "exec ..."`. For apps with tenant databases, override it on the `drydock/run-migrations` entry:
+
+```yaml
+migrate-command: bundle exec rails deploy:migrate
+```
+
+The migration deadline defaults to `timeout-seconds: 1800`. Keep `no-output-timeout` (default `"35m"`) above that deadline, because logs only print when the Kubernetes Job finishes. You can also set `template-deployment` to use a different deployment, and `should-update-credentials`, `credentials-key-env-var`, and `service-account` work the same way as on `create-deployment`.
+
+Remove the `after_initialize` migrate block from your app's `config/environments/production.rb`. Write migrations that work with the code that's already running: old pods keep serving requests until the rollout finishes. See [#11](https://github.com/brandnewbox/drydock_orb/issues/11) for the earlier boot-time migration setup.
+
 # Test Jobs
 
 We used to include a bunch of jobs in this orb to perform tests. But it turned into `test-with-x` and `test-with-y` and `test-with-z-but-not-a` over time. So we decided to move all tests to a local level configuration and keep this orb focused on S2I builds and deploying to K8S.
