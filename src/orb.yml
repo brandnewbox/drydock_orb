@@ -258,14 +258,18 @@ commands:
         default: 8
         description: The number of parallel processes to run
         type: integer
+      credentials-key-env-var:
+        default: RAILS_TEST_KEY
+        description: Environment Variable to use for the Rails Credentials Key for the Test Environment.
+        type: string
     steps:
       - run: 
           name: Install Test Env Gems
-          command: bundle install --with=test
+          command: RAILS_MASTER_KEY=$<< parameters.credentials-key-env-var >> bundle install --with=test
           # We have to specify --with=test because the builder image is configured without test and dev
       - run: 
           name: Create and load schema into database
-          command: bin/rails parallel:setup[<< parameters.parallel-processes >>]
+          command: RAILS_MASTER_KEY=$<< parameters.credentials-key-env-var >> bin/rails parallel:setup[<< parameters.parallel-processes >>]
       # Restore the most recent combined runtime log (if any) to seed grouping
       - restore_cache:
           keys:
@@ -275,7 +279,7 @@ commands:
       - run:
           name: Run tests
           command: |
-            bundle exec parallel_rspec \
+            RAILS_MASTER_KEY=$<< parameters.credentials-key-env-var >> bundle exec parallel_rspec \
             -n << parameters.parallel-processes >> \
             --runtime-log tmp/parallel_runtime_test.log \
             --verbose-rerun-command
